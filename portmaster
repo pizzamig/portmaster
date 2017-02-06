@@ -341,14 +341,10 @@ pm_make_s         () { ( unset -v CUR_DEPS INSTALLED_LIST PM_DEPTH build_l PM_UR
 			 $PM_SU_CMD /usr/bin/nice /usr/bin/make $PM_MAKE_ARGS $*; ); }
 pm_mkdir_s        () { $PM_SU_CMD /bin/mkdir -p $1; }
 pm_pkg_delete_s   () {
-	if [ -z "$use_pkgng" ]; then
-		$PM_SU_CMD /usr/sbin/pkg_delete -f $*;
-	else
-		$PM_SU_CMD /usr/local/sbin/pkg delete -yf $*;
-		for d in $* ; do
-		    pm_rm_s -rf $pdb/$d
-		done
-	fi
+	$PM_SU_CMD /usr/local/sbin/pkg delete -yf $*;
+	for d in $* ; do
+	    pm_rm_s -rf $pdb/$d
+	done
 }
 pm_rm_s           () { $PM_SU_CMD /bin/rm $*; }
 pm_rmdir_s        () { $PM_SU_CMD /bin/rmdir $*; }
@@ -910,11 +906,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 		fi
 		unset INDEXFILE INDEXDIR
 
-		if [ -z "$use_pkgng" ]; then
-			pkg_version="pkg_version"
-		else
-			pkg_version="pkg version"
-		fi
+		pkg_version="pkg version"
 		PM_INDEX_PORTS=`$pkg_version -Ivl\< $PM_INDEX | cut -f1 -d\<`
 		export PM_INDEX_PORTS
 
@@ -1827,11 +1819,7 @@ check_for_updates () {
 			fi
 		else
 			local pkg_version
-			if [ -z "$use_pkgng" ]; then
-				pkg_version="pkg_version"
-			else
-				pkg_version="pkg version"
-			fi
+			pkg_version="pkg version"
 			case `$pkg_version -t $iport $port_ver` in
 			\<)	do_update=upd_lt ;;
 			=)	;;	# Can be reached if same version with different options
@@ -1913,11 +1901,7 @@ pm_pkg_create () {
 
 	pm_cd $pkgdir || fail "Cannot cd into $pkgdir to create a package"
 	local pkg_create
-	if [ -z "$use_pkgng" ]; then
-		pkg_create="pkg_create -b"
-	else
-		pkg_create="pkg create "
-	fi
+	pkg_create="pkg create "
 	if $PM_SU_CMD $pkg_create $2; then
 		if [ "$1" = "$pbu" ]; then
 			if [ -n "$BACKUP" ]; then
@@ -2310,11 +2294,7 @@ if [ -n "$EXPUNGE" ]; then
 	[ -n "$BACKUP" ] && { init_packages ; pm_pkg_create $pbu $EXPUNGE; }
 	[ -z "$DONT_SCRUB_DISTFILES" ] && delete_all_distfiles $origin
 
-	if [ -z "$use_pkgng" ]; then
-		pkg_delete="pkg_delete"
-	else
-		pkg_delete="pkg delete"
-	fi
+	pkg_delete="pkg delete"
 	echo "===>>> Running $pkg_delete -f $EXPUNGE"
 	pm_pkg_delete_s $EXPUNGE || fail "$pkg_delete failed"
 
@@ -2353,13 +2333,8 @@ if [ -n "$CLEAN_STALE" ]; then
 			continue
 		fi
 
-		if [ -z "$use_pkgng" ]; then
-			echo '' ; pkg_info $iport
-			pkg_delete="pkg_delete"
-		else
-			echo '' ; pkg info -f $iport
-			pkg_delete="pkg delete"
-		fi
+		echo '' ; pkg info -f $iport
+		pkg_delete="pkg delete"
 
 		get_answer_yn n "\t===>>> ${iport} is no longer depended on, delete"
 		case "$?" in
@@ -2533,11 +2508,7 @@ update_build_l () {
 	find_new_port $origin
 
 	local pkg_version
-	if [ -z "$use_pkgng" ]; then
-		pkg_version="pkg_version"
-	else
-		pkg_version="pkg version"
-	fi
+	pkg_version="pkg version"
 	case `$pkg_version -t $iport $new_port 2>/dev/null` in
 	\<)	build_l="${build_l}\tUpgrade $iport to $new_port\n" ;;
 	=)	build_l="${build_l}\tRe-install $iport\n" ;;
@@ -2769,11 +2740,7 @@ dependency_check () {
 				fail "Cannot cd to $d_port"
 			fi
 			for glob in $conflicts; do
-				if [ -z "$use_pkgng" ]; then
-					confl_p=`pkg_info -I $glob 2>/dev/null`
-				else
-					confl_p=`pkg query -g "%n-%v" $glob 2>/dev/null`
-				fi
+				confl_p=`pkg query -g "%n-%v" $glob 2>/dev/null`
 				if [ -n "$confl_p" ]; then
 					confl_p=${confl_p%% *}
 					d_port="$pd/`origin_from_pdb $confl_p`"
@@ -2781,7 +2748,7 @@ dependency_check () {
 					if [ "${d_port#$pd/}" = "$portdir" ]; then
 						echo -e "\n===>>> $origin seems to depend on $portdir"
 						echo '       which looks like a dependency loop'
-						fail "Try pkg_updating $portdir"
+						fail "Try pkg updating $portdir"
 					fi
 
 					echo ''
@@ -3847,7 +3814,7 @@ fetch_package () {
 		fi
 		[ -z "$PM_PACKAGES_LOCAL" ] && echo "	${sitepath}"
 		echo ''
-		echo "       Check the pkg_add(1) man page for information"
+		echo "       Check the pkg add(1) man page for information"
 		echo "       on setting the PACKAGESITE environment variable"
 		[ "$PM_PACKAGES" = only -a -z "$FETCH_ONLY" ] && fail $ponly_err
 		if [ -n "$FETCH_ONLY" ]; then
@@ -3888,11 +3855,7 @@ notnewer () {
 		pm_v "===>>> Available package ($latest_pv) matches the current version"
 	elif [ -n "$latest_pv" -a -n "$PM_PACKAGES_NEWER" ]; then
 		if [ -n "$upg_port" ]; then
-			if [ -z "$use_pkgng" ]; then
-				pkg_version="pkg_version"
-			else
-				pkg_version="pkg version"
-			fi
+			pkg_version="pkg version"
 			case `$pkg_version -t $upg_port $latest_pv` in
 			\<)	use_package=up_newer
 				pm_v "===>>> Available package ($latest_pv)"
@@ -3909,11 +3872,7 @@ notnewer () {
 			pm_v "===>>> There is a package available ($latest_pv)"
 		fi
 	elif [ -n "$latest_pv" ]; then
-		if [ -z "$use_pkgng" ]; then
-			pkg_version="pkg_version"
-		else
-			pkg_version="pkg version"
-		fi
+		pkg_version="pkg version"
 		case `$pkg_version -t $new_port $latest_pv` in
 		\<)	# Could happen if ports tree is out of date
 			use_package=up_old_tree
@@ -4019,11 +3978,7 @@ if [ -n "$upg_port" -o -n "$ro_upg_port" ] && [ -z "$FETCH_ONLY" ]; then
 		    grep -v ^$LOCALBASE_COMPAT > $pm_mktemp_file
 
 		unset temp
-		if [ -z "$use_pkgng" ]; then
-			pkglist="pkg_info -q -L"
-		else
-			pkglist="pkg query %Fp"
-		fi
+		pkglist="pkg query %Fp"
 		for file in `$pkglist $UPGRADE_PORT |
 		    sort - $pm_mktemp_file | uniq -d`; do
 			temp="${temp}$file "
@@ -4050,7 +4005,7 @@ if [ -n "$upg_port" -o -n "$ro_upg_port" ] && [ -z "$FETCH_ONLY" ]; then
 		if [ -n "$use_pkgng" ]; then
 			np_orphan=`pkg query "%a" $ro_upg_port`
 		fi
-		pm_sv "Running pkg_delete for $ro_upg_port"
+		pm_sv "Running pkg delete for $ro_upg_port"
 		pm_pkg_delete_s $ro_upg_port
 	fi
 
@@ -4188,11 +4143,7 @@ echo ''
 temp=`find $LOCALBASE_COMPAT -type d -empty 2>/dev/null`
 if [ -z "$temp" ] && [ -d "$LOCALBASE_COMPAT" ]; then
 	unset files
-	if [ -z "$use_pkgng" ]; then
-		pkglist="pkg_info -q -L"
-	else
-		pkglist="pkg query %Fp"
-	fi
+	pkglist="pkg query %Fp"
 	for file in `$pkglist $new_port`; do
 		[ -f "${LOCALBASE_COMPAT}/${file##*/}" ] &&
 			files="${files}${LOCALBASE_COMPAT}/${file##*/} "
