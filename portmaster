@@ -35,6 +35,9 @@ fi
 
 #=============== Begin functions we always want to have ===============
 
+PM_TRUE=0
+PM_FALSE=1
+
 pm_version () {
 	echo '' ; echo "===>>> Version 3.17.10"
 }
@@ -677,6 +680,7 @@ for var in "$@" ; do
 	--check-port-dbdir)	CHECK_PORT_DBDIR=check_port_dbdir ;;
 	--list-origins)		LIST_ORIGINS=list_origins ;;
 	--show-work)		SHOW_WORK=show ; PM_THOROUGH=thorough ;;
+	--dry-run)			PM_DRYRUN=pm_dryrun ; PM_NO=nopt ;;
 	--force-config)		export PM_FORCE_CONFIG=pm_force_config ;;
 	--*)			echo "Illegal option $var" ; echo ''
 				echo "===>>> Try ${0##*/} --help"; exit 1 ;;
@@ -718,7 +722,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 	l)	LIST=lopt ;;
 	m)	export PM_MAKE_ARGS=$OPTARG	# For 'make checksum'
 		ARGS="-m $PM_MAKE_ARGS $ARGS" ;;
-	n)	NO_ACTION=nopt; ARGS="-n $ARGS" ;;
+	n)	PM_NO=nopt; ARGS="-n $ARGS" ;;
 	o)	REPLACE_ORIGIN=oopt ;;
 	p)	fail 'The -p option has been deprecated' ;;
 	r)	PM_URB=ropt
@@ -753,7 +757,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 done
 shift $(( $OPTIND - 1 ))
 
-[ -n "$PM_YES" -a -n "$NO_ACTION" ] && fail 'The -y and -n options are mutually exclusive'
+[ -n "$PM_YES" -a -n "$PM_NO" ] && fail 'The -y and -n options are mutually exclusive'
 
 [ -n "$PM_EXCL" ] && export PM_EXCL
 
@@ -791,9 +795,9 @@ fi
 
 if [ -n "$LIST" -o -n "$LIST_PLUS" ]; then
 	if [ -n "$FETCH_ONLY" -o -n "$RESTART" -o -n "$UPDATE_ALL" -o \
-	    -n "$EXPUNGE" -o -n "$PM_FORCE" -o -n "$NO_ACTION" -o \
-	    -n "$REPLACE_ORIGIN" -o -n "$PM_URB" -o -n "$CLEAN_STALE" ]; then
-		fail 'The -[lL] options are not compatible with -FRaefnors'
+	    -n "$EXPUNGE" -o -n "$PM_FORCE" -o -n "$REPLACE_ORIGIN" -o \
+		-n "$PM_URB" -o -n "$CLEAN_STALE" ]; then
+		fail 'The -[lL] options are not compatible with -FRaefors'
 	fi
 	[ $# -gt 0 ] && fail 'The -[lL] options are not compatible with updates or installs'
 fi
@@ -1046,7 +1050,7 @@ get_answer_yn () {
 
 	[ "$default" = 'y' ] && option=n || option=y
 
-	if [ -z "$PM_YES" -a -z "$NO_ACTION" ]; then
+	if [ -z "$PM_YES" -a -z "$PM_NO" ]; then
 		get_answer_g $default $option "${*}? y/n"
 		case "${?}${default}" in
 		0y|1n)	return 0 ;;
@@ -2527,7 +2531,7 @@ update_port () {
 	[ -n "$doing_dep_check" -o \( -n "$UPDATE_ALL" -a -n "$PM_FIRST_PASS" \) ] &&
 		unset NO_DEP_UPDATES
 
-	if [ -z "$NO_ACTION" -o -n "$PM_FIRST_PASS" ]; then
+	if [ -z "$PM_NO" -o -n "$PM_FIRST_PASS" ]; then
 		($0 $ARGS $1) || update_failed=update_failed
 		. $IPC_SAVE && > $IPC_SAVE
 		[ -n "$update_failed" ] && fail "Update for $1 failed"
@@ -3528,7 +3532,7 @@ elif [ -n "$FETCH_ONLY" -a -n "$PM_PACKAGES" ]; then
 fi
 
 # Do these things first time through
-if [ -z "$PM_INDEX_ONLY" -a -z "$PM_BUILDING" -a -z "$SHOW_WORK" -a -z "$NO_ACTION" ]; then
+if [ -z "$PM_INDEX_ONLY" -a -z "$PM_BUILDING" -a -z "$SHOW_WORK" -a -z "$PM_NO" ]; then
 	# Do not start this in the background until we are sure we are going to proceed
 	[ "$$" -eq "$PM_PARENT_PID" -a -n "$DI_FILES" ] && (read_distinfos)&
 
@@ -3588,7 +3592,7 @@ if [ -z "$PM_INDEX_ONLY" -a -z "$PM_BUILDING" -a -z "$SHOW_WORK" -a -z "$NO_ACTI
 		echo ''
 		unset TESTINT DISCARD
 	fi
-fi	# [ -z "$PM_INDEX_ONLY" -a -z "$PM_BUILDING" -a -z "$SHOW_WORK" -a -z "$NO_ACTION" ]
+fi	# [ -z "$PM_INDEX_ONLY" -a -z "$PM_BUILDING" -a -z "$SHOW_WORK" -a -z "$PM_NO" ]
 
 if [ -n "$PM_FIRST_PASS" ]; then
 	[ "$$" -eq "$PM_PARENT_PID" -a -n "$PM_BUILD_ONLY_LIST" ] &&
@@ -3649,7 +3653,7 @@ elif [ "$$" -eq "$PM_PARENT_PID" ]; then
 	echo ''
 fi
 
-if [ -n "$NO_ACTION" -a -z "$PM_FIRST_PASS" ]; then
+if [ -n "$PM_NO" -a -z "$PM_FIRST_PASS" ]; then
 	pm_v "===>>> Build canceled due to -n flag"
 	pm_safe_exit
 fi
