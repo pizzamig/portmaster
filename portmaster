@@ -630,7 +630,7 @@ cross_idx () {
 for var in "$@" ; do
 	case "$var" in
 	-PP[A-Za-z0-9]*|-*[A-Za-z0-9]PP*)
-				fail "The -PP option is not supported anymore" ;;
+				fail 'The -PP option has been deprecated';;
 	--packages)		packages_init first ;;
 	--packages-build)	packages_init build
 				unset PM_PACKAGES
