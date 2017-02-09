@@ -35,7 +35,7 @@ fi
 
 #=============== Begin functions we always want to have ===============
 
-version () {
+pm_version () {
 	echo '' ; echo "===>>> Version 3.17.10"
 }
 
@@ -395,7 +395,7 @@ usage () {
 	[ -z "$pdb" ] && pdb=/var/db/pkg
 	[ -z "$port_dbdir" ] && port_dbdir=/var/db/ports
 
-	version
+	pm_version
 	echo ''
 	echo 'Usage:'
 	echo "Common flags: [--force-config -CGHKgntvw -[B|b] -[f|i] -[D|d]]"
@@ -666,7 +666,7 @@ for var in "$@" ; do
 				PM_INDEX_ONLY=pm_index_only
 				export PM_INDEX PM_INDEX_ONLY ;;
 	--help)			usage 0 ;;
-	--version)		version ; exit 0 ;;
+	--version)		pm_version ; exit 0 ;;
 	--clean-distfiles)	CLEAN_DISTFILES=clean_distfiles ;;
 	--clean-distfiles-all)	echo "===>>> The -all form is deprecated, please use -y instead"
 				CLEAN_DISTFILES=clean_distfiles ; PM_YES=yopt ;;
