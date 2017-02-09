@@ -680,7 +680,7 @@ for var in "$@" ; do
 	--check-port-dbdir)	CHECK_PORT_DBDIR=check_port_dbdir ;;
 	--list-origins)		LIST_ORIGINS=list_origins ;;
 	--show-work)		SHOW_WORK=show ; PM_THOROUGH=thorough ;;
-	--dry-run)			PM_DRYRUN=pm_dryrun ; PM_NO=nopt ;;
+	--dry-run)			PM_DRY_RUN=pm_dry_run ; PM_NO=nopt ;;
 	--force-config)		export PM_FORCE_CONFIG=pm_force_config ;;
 	--*)			echo "Illegal option $var" ; echo ''
 				echo "===>>> Try ${0##*/} --help"; exit 1 ;;
