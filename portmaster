@@ -351,6 +351,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 		if [ -z "$PORTSDIR" ]; then
 			pd=`pm_make_b -f/usr/share/mk/bsd.port.mk -V PORTSDIR 2>/dev/null`
 			[ -z "$pd" ] && [ -d /usr/ports ] && pd=/usr/ports
+			[ -z "$pd" ] && fail "Not able to find any ports directory"
 		else
 			pd=$PORTSDIR
 		fi
@@ -363,32 +364,29 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 
 	if [ -z "$pdb" ]; then
 		if [ -z "$PKG_DBDIR" ]; then
-			[ -d /var/db/pkg ] && pdb=/var/db/pkg
-			[ -z "$pdb" ] &&
-				pdb=`pm_make -f/usr/share/mk/bsd.port.mk -V PKG_DBDIR 2>/dev/null`
+			pdb=`pm_make -f/usr/share/mk/bsd.port.mk -V PKG_DBDIR 2>/dev/null`
+			[ -z "$pdb" ] && [ -d /var/db/pkg ] && pdb=/var/db/pkg
+			[ -z "$pdb" ] && fail 'The value of PKG_DBDIR cannot be empty'
 		else
 			pdb=$PKG_DBDIR
-		fi
-		if [ -z "$pdb" ]; then
-			if [ -d /var/db/pkg ]; then
-				pdb='/var/db/pkg'
-			else
-				fail 'The value of PKG_DBDIR cannot be empty'
-			fi
+			[ ! -d "$pdb" ] && fail "The pkg dbdir $pdb does not seems correct"
 		fi
 	fi
 	export pdb
 
-	[ -z "$port_dbdir" ] && [ -d /var/db/ports ] && port_dbdir=/var/db/ports
 	[ -z "$port_dbdir" ] &&
 		port_dbdir=`pm_make_b -f/usr/share/mk/bsd.port.mk -V PORT_DBDIR 2>/dev/null`
-	[ -n "$port_dbdir" ] && export port_dbdir
+	[ -z "$port_dbdir" ] && [ -d /var/db/ports ] && port_dbdir=/var/db/ports
+	[ -z "$port_dbdir" ] && fail 'The value of PORT_DBDIR cannot be empty'
+	[ ! -d "$port_dbdir" ] && fail "The port dbdir $port_dbdir is not a directory"
+	export port_dbdir
 
 	# Detect if pkgng is being used
 	TMPDIR=/dev/null ASSUME_ALWAYS_YES=true \
 	    PACKAGESITE=file:///nonexistent \
 	    pkg info -x 'pkg(-devel)?$' >/dev/null 2>&1 && use_pkgng=yes
 	[ -n "$use_pkgng" ] && export use_pkgng
+	#[ -z "$use_pkgng" ] && fail 'The too pkg is not installed'
 fi
 
 usage () {
