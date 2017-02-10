@@ -1437,13 +1437,8 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 	for package in `find $PACKAGES -type f | sort`; do
 		pkg_dir=${package##*/} ; pkg_dir=${pkg_dir%\.*} ; echo ''
 
-		[ -n "$use_pkgng" ] &&
-			origin=`pkg query -F $package "%o" 2>/dev/null` ||
-			origin=`tar -O -zxvf $package '+CONTENTS' 2>/dev/null | grep '@comment ORIGIN:'` ||
-			origin=`tar -O -zxvf $package '+MANIFEST' 2>/dev/null | grep '^origin:'` ||
+		origin=`pkg query -F $package "%o" 2>/dev/null` ||
 			fail "Empty origin in $package"
-		origin=${origin#@comment ORIGIN:}
-		origin=${origin#origin: }
 
 		if [ -z "$PM_INDEX" ]; then
 			if [ -d "$pd/$origin" ]; then
@@ -1541,55 +1536,16 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 fi	# [ -n "$CLEAN_PACKAGES" ]
 
 if [ -n "$CHECK_DEPENDS" ]; then
-	if [ -n "$use_pkgng" ]; then
-		missing_deps=$(pkg check -dn)
-		pkg query "%o %do" | while read origin dep; do
-			for missing_dep in ${missing_deps}; do
-				if [ "${missing_dep}" = "${dep}" ]; then
-					echo "${origin} requires missing ${dep}"
-					break
-				fi
-			done
-		done
-		exit
-	fi
-	PM_VERBOSE=pmv_check_depends
-IFS='
-'
-	for pkg in $pdb/*; do
-		[ -d "$pkg" ] || continue
-
-		iport=${pkg#$pdb/}
-
-		echo "===>>> Checking $iport"
-
-		if [ ! -r "$pkg/+CONTENTS" ]; then
-			echo "	===>>> Warning: No +CONTENTS file!"
-			continue
-		fi
-
-		origin=`origin_from_pdb $iport` || continue
-
-		if [ -z "$PM_INDEX_ONLY" ]; then
-			if [ -n "$pd" ] && [ ! -d "$pd/$origin" ]; then
-				missing=missing
+	missing_deps=$(pkg check -dn)
+	pkg query "%o %do" | while read origin dep; do
+		for missing_dep in ${missing_deps}; do
+			if [ "${missing_dep}" = "${dep}" ]; then
+				echo "${origin} requires missing ${dep}"
+				break
 			fi
-		else
-			parse_index $origin name >/dev/null || missing=missing
-		fi
-		if [ -n "$missing" ]; then
-			echo "	===>>> $pd/$origin does not exist"
-			echo "	===>>> This port should probably be updated"
-			unset missing
-			continue
-		fi
-
-		check_dependency_files $origin $iport
-		[ -s "$grep_deps" ] && update_required_by $iport
-
-		update_contents $pkg/+CONTENTS
+		done
 	done
-	exit 0
+	exit
 fi
 
 if [ -n "$CHECK_PORT_DBDIR" ]; then
