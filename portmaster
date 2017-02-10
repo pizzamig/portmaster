@@ -562,38 +562,18 @@ find_glob_dirs () {
 origin_from_pdb () {
 	local o
 
-	if [ -z "$use_pkgng" ]; then
-		o=`grep -m1 '@comment ORIGIN:' $pdb/$1/+CONTENTS 2>/dev/null` && {
-			echo ${o#@comment ORIGIN:}; return 0; }
-	else
-		pkg query '%o' $1 2>/dev/null && return 0
-	fi
+	pkg query '%o' $1 2>/dev/null && return 0
 
+	# Old perl package relics, probably
 	case "$1" in bsdpan-*) return 3 ;; esac
 
-	if [ -e "$pdb/$1/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $1 ); then
-		if [ -n "$PM_VERBOSE" -o -n "$LIST_ORIGINS" ]; then
-			if [ -z "$use_pkgng" ]; then
-				echo "	===>>> No ORIGIN in $pdb/$1/+CONTENTS" >&2
-			else
-				# An error above doesn't necessarily mean there's
-				# a problem in +MANIFEST, so don't mention it
-				echo "	===>>> No origin available for $1" >&2
-			fi
-			echo "	===>>> $pdb/$1/+IGNOREME exists" >&2
-			echo '' >&2
-		fi
+	echo "	===>>> No origin available for $1" >&2
+	echo '' >&2
+	if pkg info -e $1 ; then
 		return 2
 	else
-		if [ -z "$use_pkgng" ]; then
-			echo "	===>>> No ORIGIN in $pdb/$1/+CONTENTS" >&2
-		else
-			# Same as above
-			echo "	===>>> No origin available for $1" >&2
-		fi
-		echo '' >&2
+		return 1
 	fi
-	return 1
 }
 
 #=============== End functions we always want to have ===============
