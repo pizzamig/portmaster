@@ -922,24 +922,8 @@ fi	# [ "$$" -eq "$PM_PARENT_PID" ]
 #=============== Begin functions relevant to --features and main ===============
 
 iport_from_origin () {
-	local sn dir
-
-	if [ -n "$use_pkgng" ]; then
-		pkg query '%n-%v' ${1} || return 1
-		return
-	fi
-	sn=${1#*/} ; sn=${sn%-*} ; sn=${sn%%[0-9]*}
-
-	if ! dir=`grep -l "@comment ORIGIN:${1}$" $pdb/${sn}*/+CONTENTS 2>/dev/null`; then
-		if ! dir=`grep -l "@comment ORIGIN:${1}$" $pdb/*/+CONTENTS 2>/dev/null`; then
-			dir=`pkg_info -q -O $1` ; [ -n "$dir" ] || return 1
-		fi
-	fi
-
-	# It should not happen that more than one port meets this
-	# requirement, but it can if the pkg data is corrupted.
-	dir="${dir%%/+CONTENTS*}"
-	echo ${dir#$pdb/}
+	pkg query '%n-%v' ${1} || return 1
+	return
 }
 
 check_regular_file () {
@@ -2733,11 +2717,7 @@ post_first_pass () {
 		done
 
 		for dep in $build_only_dl_g; do
-			if [ -z "$use_pkgng" ]; then
-				[ $(find $pdb -depth 2 -name +CONTENTS -exec grep -l "@comment DEPORIGIN:${dep#$pd/}$" {} +|wc -l) -gt 0 ] && continue
-			else
-				[ "`pkg query "%?r" ${dep#$pd/}`" = "1" ] && continue
-			fi
+			[ "`pkg query "%?r" ${dep#$pd/}`" = "1" ] && continue
 			[ -n "$PM_DEL_BUILD_ONLY" ] &&
 				iport_from_origin ${dep#$pd/} >/dev/null && continue
 			temp_bodlg="$temp_bodlg $dep"
