@@ -1289,47 +1289,20 @@ read_distinfos_all () {
 
 ports_by_category () {
 	# Global: num_roots num_trunks num_branches num_leaves num_ports
-	local pkg
-
+	# Global:_roots trunks branches leaves ports
 	pm_v "===>>> Sorting ports by category"
 
-	if [ -z "$use_pkgng" ]; then
-		num_roots=0; num_trunks=0; num_branches=0; num_leaves=0
-		for pkg in $pdb/*; do
-			if [ -s "$pkg/+REQUIRED_BY" ]; then
-				if grep -ql '^@pkgdep ' $pkg/+CONTENTS 2>/dev/null; then
-					branches="$branches ${pkg#$pdb/}"
-					num_branches=$(( $num_branches + 1 ))
-				else
-					trunks="$trunks ${pkg#$pdb/}"
-					num_trunks=$(( $num_trunks + 1 ))
-				fi
-			else
-				if grep -ql '^@pkgdep ' $pkg/+CONTENTS 2>/dev/null; then
-					leaves="$leaves ${pkg#$pdb/}"
-					num_leaves=$(( $num_leaves + 1 ))
-				else
-					[ -d "$pkg" ] || continue
-					roots="$roots ${pkg#$pdb/}"
-					num_roots=$(( $num_roots + 1 ))
-				fi
-			fi
-		done
+	roots=`   pkg query -e "%#d = 0 && %#r = 0" "%n-%v"`
+	trunks=`  pkg query -e "%#d = 0 && %#r > 0" "%n-%v"`
+	branches=`pkg query -e "%#d > 0 && %#r > 0" "%n-%v"`
+	leaves=`  pkg query -e "%#d > 0 && %#r = 0" "%n-%v"`
 
-		num_ports=$(( $num_roots + $num_trunks + $num_branches + $num_leaves ))
-	else
-		roots=`   pkg query -e "%#d = 0 && %#r = 0" "%n-%v"`
-		trunks=`  pkg query -e "%#d = 0 && %#r > 0" "%n-%v"`
-		branches=`pkg query -e "%#d > 0 && %#r > 0" "%n-%v"`
-		leaves=`  pkg query -e "%#d > 0 && %#r = 0" "%n-%v"`
+	num_roots=$(echo    $(echo $roots    | wc -w))
+	num_trunks=$(echo   $(echo $trunks   | wc -w))
+	num_branches=$(echo $(echo $branches | wc -w))
+	num_leaves=$(echo   $(echo $leaves   | wc -w))
 
-		num_roots=$(echo    $(echo $roots    | wc -w))
-		num_trunks=$(echo   $(echo $trunks   | wc -w))
-		num_branches=$(echo $(echo $branches | wc -w))
-		num_leaves=$(echo   $(echo $leaves   | wc -w))
-
-		num_ports=$(echo $(pkg query -a "%n-%v" | wc -w))
-	fi
+	num_ports=$(echo $(pkg query -a "%n-%v" | wc -w))
 }
 
 delete_empty_dist_subdirs () {
@@ -1743,7 +1716,6 @@ check_for_updates () {
 
 init_packages () {
 	# Global: pbu
-
 	[ -n "$FETCH_ONLY" ] && return
 
 	init_packages_var
