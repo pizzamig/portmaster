@@ -128,8 +128,7 @@ pm_parent_exit () {
 			if [ -n "$files" ]; then
 				pm_sv Deleting \'install complete\' flags
 				pm_find_s $pdb -type f -name PM_UPGRADE_DONE_FLAG -delete
-				[ -n "$use_pkgng" ] &&
-					pm_find_s $pdb -type d -depth 1 -empty ! -path \*\.zfs/\* -delete 2>/dev/null
+				pm_find_s $pdb -type d -depth 1 -empty ! -path \*\.zfs/\* -delete 2>/dev/null
 			fi
 		fi
 		if [ -z "$BACKUP" -a -z "$NO_BACKUP" -a -n "$NB_DELETE" ]; then
@@ -226,14 +225,7 @@ pm_parent_exit () {
 	if [ -n "$build_deps_il" ]; then
 		echo "===>>> Deleting installed build-only dependencies"
 		cd
-		if [ -z "$use_pkgng" ]; then
-			for f in $build_deps_il; do
-				pm_v "       $f"
-				pm_pkg_delete_s $f
-			done
-		else
-			pm_pkg_delete_s $build_deps_il
-		fi
+		pm_pkg_delete_s $build_deps_il
 		echo ''
 	fi
 
@@ -534,12 +526,7 @@ find_glob_dirs () {
 	local pattern
 
 	pattern=`globstrip $1`
-
-	if [ -z "$use_pkgng" ]; then
-		glob_dirs=`find $pdb -depth 1 -type d -name ${pattern}\*`
-	else
-		glob_dirs=`pkg query -g "%n-%v" ${pattern}\*`
-	fi
+	glob_dirs=`pkg query -g "%n-%v" ${pattern}\*`
 	case "$glob_dirs" in
 	# Match a newline in multiple responses from find
 	*'
