@@ -710,11 +710,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 			case "$OPTARG" in */*) fail 'The argument to -r must be a package name, or a glob pattern' ;; esac
 			find_glob_dirs $OPTARG
 			case $? in
-			1)	if [ -z "$use_pkgng" ]; then
-					fail "$pdb/$OPTARG does not exist"
-				else
-					fail "$OPTARG is not installed"
-				fi ;;
+			1)	fail "$OPTARG is not installed" ;;
 			2)	fail 'The argument to -r must match only one port' ;;
 			esac
 		fi
@@ -940,39 +936,6 @@ strip_to_iport () {
 	done
 }
 
-# Redundant with pkgng
-check_dependency_files () {
-	[ -n "$use_pkgng" ] && return
-	# Global: grep_deps
-	local origin iport ro_opd
-
-	origin=$1 ; iport=$2
-
-	# egrep hates + in file names
-	case "$origin" in *+*) origin=`echo $origin | sed 's#\+#\\\\+#g'` ;; esac
-	case "$ro_opd" in
-	'')	ro_opd=a/a ;;
-	*+*)	ro_opd=`echo $ro_opd | sed 's#\+#\\\\+#g'` ;; esac
-
-	# Always rely on the grep'ed dependencies instead of +REQUIRED_BY
-	pm_mktemp grep-deps-${iport} ; grep_deps=$pm_mktemp_file
-	find $pdb -depth 2 -name +CONTENTS -exec egrep -l "DEPORIGIN:($origin|$ro_opd)$" {} + |
-	    strip_to_iport | sort -u > $grep_deps
-
-	if [ ! -s "$grep_deps" ]; then
-		if [ -s "$pdb/$iport/+REQUIRED_BY" ]; then
-			# No actual dependencies exist, so this file is stale
-			# Zero it out so that -s mode can find it
-			pm_v "	===>>> No installed ports depend on $iport"
-			pm_v "	===>>> Emptying +REQUIRED_BY file.  Try ${0##*/} -s"
-
-			check_regular_file $pdb/$iport/+REQUIRED_BY
-			$PM_SU_CMD truncate -s0 $pdb/$iport/+REQUIRED_BY
-		fi
-		/bin/unlink $grep_deps ; unset grep_deps
-	fi
-}
-
 # Takes default value, optional value, and message as input
 # Return values:
 # 0 - Default value chosen
@@ -1167,20 +1130,7 @@ find_moved_port () {
 }
 
 all_pkgs_by_origin () {
-	if [ -z "$use_pkgng" ]; then
-		local pkg iport origin
-
-		for pkg in ${pdb}/* ; do
-			[ -d $pkg ] || continue
-			iport=${pkg#$pdb/}
-
-			origin=`origin_from_pdb $iport` || continue
-			echo $iport $origin
-		done
-	else
-		pkg query -a "%n-%v %o"
-	fi
-	return
+	pkg query -a "%n-%v %o"
 }
 
 read_distinfos () {
@@ -1413,26 +1363,14 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 		if [ -n "$port_ver" ]; then
 			if [ "$port_ver" = "$pkg_dir" ]; then
 				echo "===>>> ${package##*/} is up to date"
-				if [ -z "$use_pkgng" ]; then
-					if [ ! -d "${pdb}/${pkg_dir}" ]; then
-						echo "	===>>> $pkg_dir is not installed"
-						echo "	===>>> Path: ${package}"
-						get_answer_yn y "\n\t===>>> Delete stale package: ${package##*/}"
-						case "$?" in
-						0)	echo "	===>>> Deleting $package"
-							pm_unlink_s $package ;;
-						esac
-					fi
-				else
-					if ! pkg info -e $pkg_dir; then
-						echo "	===>>> $pkg_dir is not installed"
-						echo "	===>>> Path: ${package}"
-						get_answer_yn y "\n\t===>>> Delete stale package: ${package##*/}"
-						case "$?" in
-						0)	echo "	===>>> Deleting $package"
-							pm_unlink_s $package ;;
-						esac
-					fi
+				if ! pkg info -e $pkg_dir; then
+					echo "	===>>> $pkg_dir is not installed"
+					echo "	===>>> Path: ${package}"
+					get_answer_yn y "\n\t===>>> Delete stale package: ${package##*/}"
+					case "$?" in
+					0)	echo "	===>>> Deleting $package"
+						pm_unlink_s $package ;;
+					esac
 				fi
 				unset port_ver
 				continue
