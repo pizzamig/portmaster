@@ -1550,7 +1550,7 @@ fi
 
 if [ -n "$CHECK_PORT_DBDIR" ]; then
 	[ -d "$port_dbdir" ] ||
-		fail 'PORT_DBIR is empty, or the directory $port_dbdir does not exist'
+		fail 'PORT_DBDIR is empty, or the directory $port_dbdir does not exist'
 
 	unique_list=':'
 
