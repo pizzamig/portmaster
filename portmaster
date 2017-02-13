@@ -2009,11 +2009,7 @@ if [ -n "$EXPUNGE" ]; then
 	if [ ! -d "$pdb/$EXPUNGE" ] || ( [ -n "$use_pkgng" ] && ! pkg info -e $EXPUNGE ); then
 		find_glob_dirs $EXPUNGE
 		case $? in
-		1)	if [ -z "$use_pkgng" ]; then
-				fail "No such directory/port: $pdb/$EXPUNGE"
-			else
-				fail "No such port: $EXPUNGE"
-			fi ;;
+		1)	fail "No such port: $EXPUNGE" ;;
 		2)	echo "===>>> $EXPUNGE matched multiple ports"
 			fail "The -e option works with only one port at a time" ;;
 		0)	EXPUNGE=${glob_dirs#$pdb/}
@@ -2022,20 +2018,10 @@ if [ -n "$EXPUNGE" ]; then
 	fi
 
 	origin=`origin_from_pdb $EXPUNGE`
-	if [ -z "$use_pkgng" ]; then
-		deplist=`find $pdb -depth 2 -name +CONTENTS -exec grep -l DEPORIGIN:$origin$ {} +`
-	else
-		deplist=`pkg query "%rn-%rv" $origin`
-	fi
+	deplist=`pkg query "%rn-%rv" $origin`
 	if [ -n "$deplist" ]; then
 		echo "===>>> Warning: Ports with dependencies on ${EXPUNGE}:"
-		if [ -z "$use_pkgng" ]; then
-			for dep in $deplist; do
-				dep=${dep%/+CON*} ; echo "	${dep##*/}"
-			done
-		else
-			echo "$deplist" | sed 's/^/	/'
-		fi
+		echo "$deplist" | sed 's/^/	/'
 		get_answer_yn n "\n\t===>>> Delete this dependency data"
 		case "$?" in
 		0)	[ -n "$use_pkgng" ] && exit 1 #TODO
