@@ -1547,42 +1547,21 @@ if [ -n "$CHECK_PORT_DBDIR" ]; then
 	unique_list=':'
 
 	echo "===>>> Building list of installed port names"; echo ''
-	if [ -z "$use_pkgng" ]; then
-		for pkg in $pdb/*; do
-			[ -d $pkg ] || continue
+	while read pkg origin; do
+		if [ ! -d "$pd/$origin" ]; then
+			find_moved_port $origin $pkg nonfatal >/dev/null
+			[ -n "$moved_npd" ] || continue
+			origin=$moved_npd
+		fi
 
-			iport=${pkg#$pdb/}
-			origin=`origin_from_pdb $iport` || continue
-
-			if [ ! -d "$pd/$origin" ]; then
-				find_moved_port $origin $iport nonfatal >/dev/null
-				[ -n "$moved_npd" ] || continue
-				origin=$moved_npd
-			fi
-
-			if ! pm_cd $pd/$origin; then
-				echo "	===>>> $pd/$origin does not exist for $pkg"
-				continue
-			fi
-			unique_list="${unique_list}`make -V UNIQUENAME -V OPTIONS_NAME | tr '\n' ':'`"
-		done
-	else
-		while read pkg origin; do
-			if [ ! -d "$pd/$origin" ]; then
-				find_moved_port $origin $pkg nonfatal >/dev/null
-				[ -n "$moved_npd" ] || continue
-				origin=$moved_npd
-			fi
-
-			if ! pm_cd $pd/$origin; then
-				echo "	===>>> $pd/$origin does not exist for $pkg"
-				continue
-			fi
-			unique_list="${unique_list}`make -V UNIQUENAME -V OPTIONS_NAME | tr '\n' ':'`"
-		done <<-EOF
-		$(pkg query -a "%n-%v %o")
-		EOF
-	fi
+		if ! pm_cd $pd/$origin; then
+			echo "	===>>> $pd/$origin does not exist for $pkg"
+			continue
+		fi
+		unique_list="${unique_list}`make -V UNIQUENAME -V OPTIONS_NAME | tr '\n' ':'`"
+	done <<-EOF
+	$(pkg query -a "%n-%v %o")
+	EOF
 
 	echo "===>>> Checking $port_dbdir"
 
@@ -1608,16 +1587,7 @@ if [ -n "$CHECK_PORT_DBDIR" ]; then
 fi
 
 if [ -n "$LIST_ORIGINS" ]; then
-	if [ -z "$use_pkgng" ]; then
-		ports_by_category
-		for iport in $roots $leaves; do
-			origin=`origin_from_pdb $iport` || continue
-			echo $origin
-		done
-	else
-		pkg query -e '%#r = 0' '%o'
-	fi
-
+	pkg query -e '%#r = 0' '%o'
 	exit 0
 fi
 
