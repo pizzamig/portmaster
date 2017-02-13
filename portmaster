@@ -1486,18 +1486,10 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 
 			unset port_ver
 
-			if [ -z "$use_pkgng" ]; then
-				if [ -d "${pdb}/${pkg_dir}" ]; then
-					echo "	===>>> ${package##*/} matches the installed version"
-				else
-					echo "	===>>> ${package##*/} is not installed"
-				fi
+			if pkg info -e $pkg_dir; then
+				echo "	===>>> ${package##*/} matches the installed version"
 			else
-				if pkg info -e $pkg_dir; then
-					echo "	===>>> ${package##*/} matches the installed version"
-				else
-					echo "	===>>> ${package##*/} is not installed"
-				fi
+				echo "	===>>> ${package##*/} is not installed"
 			fi
 		fi
 
