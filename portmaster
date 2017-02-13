@@ -563,6 +563,9 @@ origin_from_pdb () {
 	echo "	===>>> No origin available for $1" >&2
 	echo '' >&2
 	if pkg info -e $1 ; then
+		if [ -e "$pdb/$1/+IGNOREME" ]; then
+			echo "  ===>>> $pdb/$1/+IGNOREME exists" >&2
+		fi
 		return 2
 	else
 		return 1
