@@ -112,7 +112,6 @@ pm_kill_bad_children () {
 	done <<-EOF
 	$(ps -axo pid,ppid,pgid,command | sed '1d')
 	EOF
-
 }
 
 pm_parent_exit () {
@@ -961,102 +960,13 @@ get_answer_yn () {
 	if [ -z "$PM_YES" -a -z "$PM_NO" ]; then
 		get_answer_g $default $option "${*}? y/n"
 		case "${?}${default}" in
-		0y|1n)	return 0 ;;
-		0n|1y)	return 1 ;;
+		0y|1n)	return $PM_TRUE ;;
+		0n|1y)	return $PM_FALSE1 ;;
 		esac
 	else
-		[ -n "$PM_YES" ] && return 0
-		return 1
+		[ -n "$PM_YES" ] && return $PM_TRUE
+		return $PM_FALSE
 	fi
-}
-
-# redundant with pkgng
-update_contents () {
-	[ -n "$use_pkgng" ] && return
-	local IFS delete contents origin n_port old_origin iport
-	local o_seen line d_missing d_origin d_iport prev_line answer
-
-# To prevent words in a line being treated individually
-IFS='
-'
-	[ "$1" = 'delete' ] && { delete=delete ; shift; }
-
-	contents=$1 ; origin=$2 ; n_port=$3 ; old_origin=$4
-	iport=${contents#$pdb/} ; iport=${iport%/+CONTENTS}
-	pm_mktemp contents-${iport}
-
-	if [ -z "$delete" ]; then o_seen=':'; else o_seen=":${origin}:"; fi
-
-	for line in `cat $contents`; do
-		if [ -n "$d_missing" ]; then
-			unset d_missing
-			d_origin=${line#*DEPORIGIN:}
-
-			case "$o_seen" in *:${d_origin}:*)
-				unset prev_line line ; continue ;; esac
-			o_seen="${o_seen}${d_origin}:"
-
-			if [ "$d_origin" = "$old_origin" ]; then
-				d_iport=$n_port
-				d_origin=$origin
-			else
-				d_iport=`iport_from_origin $d_origin`
-			fi
-
-			if [ -n "$d_iport" ]; then
-				pm_v "	===>>> Updating @pkgdep for $d_origin"
-			else
-				echo ''
-				echo "	===>>> $d_origin is listed as a dependency"
-				echo "	===>>> but there is no installed version"
-				echo ''
-				if [ -n "$CHECK_DEPENDS" ]; then
-					get_answer_yn n "\t===>>> Delete this dependency data"
-					case "$?" in 0) unset prev_line line ; continue ;; esac
-				else
-					echo "	===>>> Try ${0##*/} --check-depends"
-					echo ''
-				fi
-			fi
-
-			# Could be fixed or not, but if we get here write it
-			# so we can warn the user again later if we need to.
-			echo "@pkgdep $d_iport" >> $pm_mktemp_file
-			echo "@comment DEPORIGIN:$d_origin" >> $pm_mktemp_file
-			unset prev_line
-			continue
-		fi
-		case "$line" in
-		"@comment DEPORIGIN:$origin"|"@comment DEPORIGIN:$old_origin")
-			d_origin=${line#*DEPORIGIN:}
-			unset prev_line line
-
-			case "$o_seen" in *:${d_origin}:*) continue ;; esac
-			o_seen="${o_seen}${d_origin}:"
-
-			echo "@pkgdep $n_port" >> $pm_mktemp_file
-			echo "@comment DEPORIGIN:$origin" >> $pm_mktemp_file ;;
-		'@comment DEPORIGIN:'*)
-			d_origin=${line#*DEPORIGIN:}
-			case "$o_seen" in *:${d_origin}:*)
-				unset prev_line line ; continue ;; esac
-			o_seen="${o_seen}${d_origin}:" ;;
-		'@pkgdep '|@pkgdep) d_missing=d_missing ;;
-		@pkgdep*)	d_iport="${line#@pkgdep }"
-				[ -d "$pdb/$d_iport" ] || d_missing=dm2 ;;
-		esac
-		[ -n "$prev_line" ] && echo $prev_line >> $pm_mktemp_file
-		prev_line=$line
-	done
-	[ -n "$prev_line" ] && echo $prev_line >> $pm_mktemp_file
-
-	if ! cmp -s $contents $pm_mktemp_file; then
-		check_regular_file $contents
-		pm_v "	===>>> Installing the new +CONTENTS file"
-		pm_install_s $pm_mktemp_file $contents
-	fi
-
-	/bin/unlink $pm_mktemp_file ; unset pm_mktemp_file
 }
 
 find_moved_port () {
@@ -2006,7 +1916,7 @@ if [ -n "$LIST" -o -n "$LIST_PLUS" ]; then
 fi
 
 if [ -n "$EXPUNGE" ]; then
-	if [ ! -d "$pdb/$EXPUNGE" ] || ( [ -n "$use_pkgng" ] && ! pkg info -e $EXPUNGE ); then
+	if [ ! -d "$pdb/$EXPUNGE" ] || ( ! pkg info -e $EXPUNGE ); then
 		find_glob_dirs $EXPUNGE
 		case $? in
 		1)	fail "No such port: $EXPUNGE" ;;
@@ -2023,20 +1933,15 @@ if [ -n "$EXPUNGE" ]; then
 		echo "===>>> Warning: Ports with dependencies on ${EXPUNGE}:"
 		echo "$deplist" | sed 's/^/	/'
 		get_answer_yn n "\n\t===>>> Delete this dependency data"
-		case "$?" in
-		0)	[ -n "$use_pkgng" ] && exit 1 #TODO
-			for f in $deplist; do
-				update_contents delete $f $origin
-			done ;;
-		*)	exit 1 ;;
-		esac
+		if [ $? -eq $PM_FALSE ]; then
+			exit 1
+		fi
 	fi
 
 	[ -n "$BACKUP" ] && { init_packages ; pm_pkg_create $pbu $EXPUNGE; }
 	[ -z "$DONT_SCRUB_DISTFILES" ] && delete_all_distfiles $origin
 
-	pkg_delete="pkg delete"
-	echo "===>>> Running $pkg_delete -f $EXPUNGE"
+	echo "===>>> Running pkg delete -f $EXPUNGE"
 	pm_pkg_delete_s $EXPUNGE || fail "$pkg_delete failed"
 
 	echo '' ; echo "===>>> Running ${0##*/} -s $ARGS"
