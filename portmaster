@@ -1996,7 +1996,7 @@ check_restart_and_udf () {
 	# to go out to the disk if we don't have to.
 	[ -z "$RESTART" ] && return 1
 
-	if [ ! -e "$pdb/${1}/PM_UPGRADE_DONE_FLAG" ] || ( [ -n "$use_pkgng" ] && ! pkg info -e $1 ); then
+	if [ ! -e "$pdb/${1}/PM_UPGRADE_DONE_FLAG" ] || ( ! pkg info -e $1 ); then
 		return 1
 	else
 		already_done $1
@@ -2013,7 +2013,7 @@ check_interactive () {
 	case "$INTERACTIVE_YES" in *:${1}:*) return 0 ;; esac
 	case "$INTERACTIVE_NO" in *:${1}:*) return 1 ;; esac
 
-	if [ -e "$pdb/$1/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $1 ); then
+	if [ -e "$pdb/$1/+IGNOREME" ] && ( pkg info -e $1 ); then
 		echo ''
 		echo "===>>> +IGNOREME file is present for $1"
 		echo ''
@@ -2594,16 +2594,13 @@ multiport () {
 			else
 				fail "$pd/${port} does not exist"
 			fi ;;
-		*)	if [ -d "$pdb/$port" ] && ( [ -z "$use_pkgng" ] || pkg info -e $port ); then
+		*)	if [ -d "$pdb/$port" ] && ( pkg info -e $port ); then
 				worklist_temp="$worklist_temp $port"
 			else
 				find_glob_dirs $port
 				case $? in
-				1)	if [ -z "$use_pkgng" ]; then
-						fail "$pdb/$port does not exist"
-					else
-						fail "$port is not installed"
-					fi ;;
+				1)	fail "$port is not installed"
+					;;
 				*)	local dir
 					for dir in $glob_dirs; do
 					worklist_temp="$worklist_temp ${dir#$pdb/}"
@@ -2718,16 +2715,9 @@ multiport () {
 		*/*)	origin=$port ;;
 		*)	# If an installed version does not exist at this
 			# point it probably got updated as a dependency
-			if [ -z "$use_pkgng" ]; then
-				if [ ! -d "$pdb/$port" ]; then
-					numports=$(( $numports - 1 ))
-					continue
-				fi
-			else
-				if ! pkg info -e $port; then
-					numports=$(( $numports - 1 ))
-					continue
-				fi
+			if ! pkg info -e $port; then
+				numports=$(( $numports - 1 ))
+				continue
 			fi
 			origin=`origin_from_pdb $port` ;;
 		esac
@@ -2968,8 +2958,7 @@ if [ -z "$REPLACE_ORIGIN" ]; then
 			*)	echo '' ; no_valid_port ;;
 			esac
 		done ;;
-	*)	[ -d "$pdb/$argv" ] && \
-			( [ -z "$use_pkgng" ] || pkg info -e $argv ) && \
+	*)	[ -d "$pdb/$argv" ] && ( pkg info -e $argv ) && \
 			upg_port=$argv ;;
 	esac
 
@@ -3003,7 +2992,7 @@ else
 
 	case "$arg2" in
 	*/*)	ro_opd=$arg2 ; ro_upg_port=`iport_from_origin $ro_opd` ;;
-	*)	if [ -d "$pdb/$arg2" ] && ( [ -z "$use_pkgng" ] || pkg info -e $arg2 ); then
+	*)	if [ -d "$pdb/$arg2" ] && ( pkg info -e $arg2 ); then
 			ro_upg_port=$arg2
 		else
 			find_glob_dirs $arg2 && ro_upg_port=${glob_dirs#$pdb/}
@@ -3018,18 +3007,10 @@ else
 	unset arg2
 
 	if [ -z "$ro_upg_port" ]; then
-		if [ -z "$use_pkgng" ]; then
-			[ $(find $pdb -depth 2 -name +CONTENTS -exec grep -l "DEPORIGIN:$ro_opd$" {} +|wc -l) -gt 0 ]
-		else
-			pkg query -a "%do" | grep -q "^$ro_opd$"
-		fi
+		pkg query -a "%do" | grep -q "^$ro_opd$"
 		if [ "$?" -eq 1 ]; then
 			echo ''
-			if [ -z "$use_pkgng" ]; then
-				echo "===>>> The second argument to -o can be a port in $pdb,"
-			else
-				echo "===>>> The second argument to -o can be a package name,"
-			fi
+			echo "===>>> The second argument to -o can be a package name,"
 			echo "       or a port directory from $pd"
 			echo ''
 			echo "       $ro_opd does not seem to be installed,"
@@ -3064,7 +3045,7 @@ if [ -z "$PM_INDEX_ONLY" ] && [ ! -d "$pd/$portdir" ]; then
 fi
 [ -z "$upg_port" -a -z "$REPLACE_ORIGIN" ] && upg_port=`iport_from_origin ${portdir}`
 
-if [ -e "$pdb/$upg_port/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $upg_port ); then
+if [ -e "$pdb/$upg_port/+IGNOREME" ] && ( pkg info -e $upg_port ); then
 	# Adding to CUR_DEPS means we will not get here in the build
 	if [ -z "$PM_BUILDING" ]; then
 		# Only need to prompt for this once if -ai
@@ -3597,9 +3578,7 @@ if [ -n "$upg_port" -o -n "$ro_upg_port" ] && [ -z "$FETCH_ONLY" ]; then
 
 	if [ -n "$REPLACE_ORIGIN" -a -n "$ro_upg_port" ]; then
 		# Delete any existing versions of the old port
-		if [ -n "$use_pkgng" ]; then
-			np_orphan=`pkg query "%a" $ro_upg_port`
-		fi
+		np_orphan=`pkg query "%a" $ro_upg_port`
 		pm_sv "Running pkg delete for $ro_upg_port"
 		pm_pkg_delete_s $ro_upg_port
 	fi
@@ -3620,7 +3599,7 @@ if [ -n "$upg_port" -o -n "$ro_upg_port" ] && [ -z "$FETCH_ONLY" ]; then
 		esac
 
 		# If $ro_upg_port was non-automatic, keep its state
-		if [ -n "$use_pkgng" -a "${np_orphan:-1}" -eq 1 ]; then
+		if [ "${np_orphan:-1}" -eq 1 ]; then
 			np_orphan=`pkg query "%a" $upg_port`
 		fi
 		pm_sv "Running pkg_delete for $upg_port"
