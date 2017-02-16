@@ -686,7 +686,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 	o)	REPLACE_ORIGIN=oopt ;;
 	p)	fail 'The -p option has been deprecated' ;;
 	r)	PM_URB=ropt
-		if [ -d "$pdb/$OPTARG" ] && ( [ -z "$use_pkgng" ] || pkg info -e $OPTARG ); then
+		if [ -d "$pdb/$OPTARG" ] && ( pkg info -e $OPTARG ); then
 			glob_dirs=$OPTARG
 		else
 			case "$OPTARG" in */*) fail 'The argument to -r must be a package name, or a glob pattern' ;; esac
@@ -982,7 +982,7 @@ find_moved_port () {
 	for l in `grep "^$sf|" $pd/MOVED`; do
 		case "$l" in
 		${sf}\|\|*) [ -n "$iport" ] || iport=`iport_from_origin $sf`
-			if [ -e "$pdb/$iport/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $iport ); then
+			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
 				if [ -n "$PM_VERBOSE" ]; then
 					echo ''
 					echo "	===>>> The $sf port has been deleted"
@@ -1017,7 +1017,7 @@ find_moved_port () {
 		echo ''
 
 		[ -n "$iport" ] || iport=`iport_from_origin $sf`
-		[ -e "$pdb/$iport/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $iport ) || return 1
+		[ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ) || return 1
 	fi
 	return 0
 }
