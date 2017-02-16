@@ -1177,27 +1177,6 @@ parse_index () {
 	esac
 }
 
-# Redundant with pkgng
-update_required_by () {
-	[ -n "$use_pkgng" ] && /bin/unlink $grep_deps && unset grep_deps && return
-	# Global: needws
-	local do_update
-
-	if [ -e "$pdb/$1/+REQUIRED_BY" ]; then
-		sort $pdb/$1/+REQUIRED_BY | cmp -s $grep_deps - || do_update=do_update
-		check_regular_file $pdb/$1/+REQUIRED_BY
-	else
-		do_update=do_update2
-	fi
- 	if [ -n "$do_update" ]; then
-		pm_v "	===>>> Updating $1/+REQUIRED_BY"
-		needws=needws_urb
-		pm_install_s $grep_deps $pdb/$1/+REQUIRED_BY
-	fi
-
-	/bin/unlink $grep_deps && unset grep_deps
-}
-
 #=============== End functions relevant to --features and main ===============
 #=============== Begin code relevant only to --features ===============
 
