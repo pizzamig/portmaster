@@ -1423,7 +1423,7 @@ check_for_updates () {
 
 	if [ -z "$do_update" -a -z "$skip" -a -z "$PM_INDEX_ONLY" ] && [ -d "$pd/$origin" ]; then
 		if ! pm_cd $pd/$origin; then
-			if [ -e "$pdb/$iport/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $iport ); then
+			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
 				echo "	===>>> Warning: Unable to cd to $pd/$origin"
 				echo "	===>>> Continuing due to $pdb/$iport/+IGNOREME"
 				echo ''
@@ -1440,7 +1440,7 @@ check_for_updates () {
 
 		# If the port has moved and no +IGNOREME, we have to update it
 		if [ -n "$moved_npd" ]; then
-			if [ -e "$pdb/$iport/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $iport ); then
+			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
 				echo "	===>>> Continuing due to $pdb/$iport/+IGNOREME"
 				echo ''
 				CUR_DEPS="${CUR_DEPS}${iport}:${origin}:"
@@ -1488,7 +1488,7 @@ check_for_updates () {
 	if [ -n "$LIST_PLUS" ]; then
 		if [ -z "$moved_npd" ]; then
 			echo "	===>>> New version available: $port_ver"
-			if [ -e "$pdb/$iport/+IGNOREME" ] && ( [ -z "$use_pkgng" ] || pkg info -e $iport ); then
+			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
 				echo "	===>>> +IGNOREME file is present for $1"
 			fi
 			pm_cd_pd $origin && check_state
@@ -1931,11 +1931,7 @@ fi
 if [ -n "$CLEAN_STALE" ]; then
 	[ -z "$no_del_list" ] && export no_del_list=':'
 
-	if [ -z "$use_pkgng" ]; then
-		find_stale_ports="find $pdb -type f -name \+REQUIRED_BY -empty"
-	else
-		find_stale_ports="pkg query -ae '%a = 1' '%?r %n-%v' | awk '/^0/ { print \$2 }'"
-	fi
+	find_stale_ports="pkg query -ae '%a = 1' '%?r %n-%v' | awk '/^0/ { print \$2 }'"
 	for file in `eval $find_stale_ports` ; do
 		iport="${file%/+REQUIRED_BY}" ; iport=${iport#$pdb/}
 
