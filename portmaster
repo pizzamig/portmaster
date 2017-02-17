@@ -39,7 +39,7 @@ PM_TRUE=0
 PM_FALSE=1
 
 pm_version () {
-	echo '' ; echo "===>>> Version 3.17.10"
+	echo '' ; echo "===>>> Version 3.18.0"
 }
 
 fail () {
