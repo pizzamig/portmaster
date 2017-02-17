@@ -2918,11 +2918,8 @@ if [ -z "$REPLACE_ORIGIN" ]; then
 	argv=${argv:-$1} ; argv=${argv%/} ; argv=`globstrip $argv`
 	case "$argv" in
 	$pd/*)	portdir=${argv#$pd/} ;;
-	$pdb/*)	if [ -z "$use_pkgng" ]; then
-			upg_port=${argv#$pdb/}
-		else
-			echo '' ; no_valid_port
-		fi ;;
+	$pdb/*)	upg_port=${argv#$pdb/}
+		 ;;
 	/*)	echo '' ; no_valid_port ;;
 	*/*)	portdir=$argv ;;
 	\.|'')	portdir="$PWD"
