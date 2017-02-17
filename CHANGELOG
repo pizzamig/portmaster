@@ -1,0 +1,8 @@
+3.18.0
+pkg is now mandatory. No pkg_* support anymore.
+
+-n is not incompatible anymore with -l and -L
+	-l and -L doesn't perform any changes, so it's always a dry-run
+
+Removing support and warning to undocumented path of portmaster.rc
+	Only /usr/local/etc/portmaster.rc and $HOME/.portmasterrc will be supported
