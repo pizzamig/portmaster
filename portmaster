@@ -772,12 +772,11 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 	    fail 'The -[ar] options are not compatible with other updates'
 
 	if [ -n "$PM_PACKAGES" -o -n "$PM_PACKAGES_BUILD" ]; then
-		if [ -n "$use_pkgng" ]; then
-			unset PM_PACKAGES PM_PACKAGES_BUILD PM_PACKAGES_LOCAL PM_PACKAGES_NEWER PM_ALWAYS_FETCH PM_DELETE_PACKAGES
-			echo "===>>> Package installation support cannot be used with pkgng yet,"
-			echo "       it will be disabled"
-			echo ''
-		fi
+		# Currently, package installation is not supported
+		unset PM_PACKAGES PM_PACKAGES_BUILD PM_PACKAGES_LOCAL PM_PACKAGES_NEWER PM_ALWAYS_FETCH PM_DELETE_PACKAGES
+		echo "===>>> Package installation support cannot be used with pkgng yet,"
+		echo "       it will be disabled"
+		echo ''
 		[ `/sbin/sysctl -n kern.osreldate 2>/dev/null` -lt 600400 ] &&
 			fail Package installation support requires FreeBSD 6.4 or newer
 	fi
@@ -1938,22 +1937,6 @@ if [ -n "$CLEAN_STALE" ]; then
 		case "$no_del_list" in *:${iport}:*) continue ;; esac
 
 		origin=`origin_from_pdb $iport`
-		deplist=""
-		if [ -z "$use_pkgng" ]; then
-			deplist=`find $pdb -depth 2 -name +CONTENTS -exec grep -l DEPORIGIN:$origin$ {} +`
-		fi
-		if [ -n "$deplist" ]; then
-			echo ''
-			echo "===>>> Warning: Unrecorded dependencies on ${iport}:"
-			for dep in $deplist; do
-				dep=${dep%/+CON*} ; echo "	${dep##*/}"
-			done
-			echo ''
-			echo "===>>> Try ${0##*/} --check-depends"
-			echo ''
-			continue
-		fi
-
 		echo '' ; pkg info -f $iport
 		pkg_delete="pkg delete"
 
@@ -1966,15 +1949,8 @@ if [ -n "$CLEAN_STALE" ]; then
 			pm_pkg_delete_s $iport || fail "$pkg_delete failed"
 
 			exec $0 -s $ARGS ;;
-		*)	if [ -z "$use_pkgng" ]; then
-				get_answer_yn n "\t===>>> Delete this dependency data"
-				case "$?" in
-				0)	pm_unlink_s $file ;;
-				*)	no_del_list="${no_del_list}${iport}:" ;;
-				esac
-			else
-				no_del_list="${no_del_list}${iport}:"
-			fi ;;
+		*)	no_del_list="${no_del_list}${iport}:"
+			;;
 		esac
 	done
 	exit 0
