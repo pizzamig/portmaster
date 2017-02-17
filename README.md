@@ -2,9 +2,6 @@ This script uses the existing ports infrastructure to track dependencies,
 and keep them up to date.  It is written in /bin/sh so it has no dependencies.
 
 Portmaster has the following features:
-  * Updates and repairs (as needed) entries for dependencies in both +CONTENTS
-    and +REQUIRED_BY files for both the port that is being updated, and any
-    ports that depend on it
   * Runs make config recursively through all ports before starting build
   * Downloads distfiles in the background
   * Recursively checks and upgrades (or installs) all dependencies
