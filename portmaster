@@ -7,17 +7,18 @@ trap pm_trap_exit INT
 
 umask 022
 
-# Initialize crucial values for the parent, and export them for the children
+#=============== Initialization of crucial variables [ parent ] ===============
+# PM_PARENT_PID TMPDIR PATH
+# reading configuration files
 if [ -z "$PM_PARENT_PID" ]; then
 	PM_PARENT_PID=$$
 	: ${TMPDIR:=/tmp} ; /bin/mkdir -p $TMPDIR
-	UPGRADE_TOOL=portmaster
 
 	# /usr/local is needed in the path for make
 	PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 	[ -e /usr/X11R6 ] && [ ! -L /usr/X11R6 ] && PATH=$PATH:/usr/X11R6/bin
 	[ -n "$CCACHE_PATH" -a -z "$NOCCACHE" ] && PATH="/usr/local/libexec/ccache:$PATH"
-	export PM_PARENT_PID TMPDIR UPGRADE_TOOL PATH
+	export PM_PARENT_PID TMPDIR PATH
 
 	set -o allexport
 	# Read a global rc file first
@@ -30,17 +31,16 @@ if [ -z "$PM_PARENT_PID" ]; then
 	my_environment=`set`
 
 	# If we are already root, unset this to avoid potential conflict
-	[ `ps -o uid= $$` -eq 0 ] && unset PM_SU_CMD PM_SU_VERBOSE
+	#[ `ps -o uid= $$` -eq 0 ] && unset PM_SU_CMD PM_SU_VERBOSE
+	[ $(id -u) -eq 0 ] && unset PM_SU_CMD PM_SU_VERBOSE
 fi
 
-#=============== Begin functions we always want to have ===============
+#=============== Common functions definition ===============
 
 PM_TRUE=0
 PM_FALSE=1
 
-pm_version () {
-	echo '' ; echo "===>>> Version 3.18.0"
-}
+pm_version () { echo '' ; echo "===>>> Version 3.18.0" ; }
 
 fail () {
 	echo -e "\n===>>> $*" ; echo "===>>> Aborting update"
@@ -328,8 +328,11 @@ pm_unlink_s       () { [ -e "$1" ] && $PM_SU_CMD /bin/unlink $1; }
 pm_v              () { [ -n "$PM_VERBOSE" ] && echo -e "$*"; }
 pm_sv             () { [ -n "$PM_SU_VERBOSE" ] && echo -e "===>>> SU $*"; }
 
-# Do this here so we can have a reasonably good guess.
-# May be modified below.
+# string manipulation functions
+pm_globstrip () { local in ; in=${1%[*]} ; in=${in%\\} ; echo $in ; }
+
+#=============== Initialization of ports variables [ parent ] ===============
+# pd (ports dir); pdb (pkg db dir); port_dbdir (port configuration)
 if [ "$$" -eq "$PM_PARENT_PID" ]; then
 	if [ -z "$pd" ]; then
 		if [ -z "$PORTSDIR" ]; then
@@ -340,7 +343,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 			pd=$PORTSDIR
 		fi
 	fi
-	if [ -n "$pd" ]; then
+	if [ -n "$pd" ]; then # pd validation
 		[ ! -r "${pd}/Mk/bsd.port.mk" ] &&
 			fail "The ports directory ($pd) does not seem to contain a ports tree"
 		export pd
@@ -365,7 +368,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 	[ ! -d "$port_dbdir" ] && fail "The port dbdir $port_dbdir is not a directory"
 	export port_dbdir
 
-	# Detect if pkg is present
+	# pkg detection
 	pkg_found=$PM_FALSE
 	TMPDIR=/dev/null ASSUME_ALWAYS_YES=true \
 	    PACKAGESITE=file:///nonexistent \
@@ -512,19 +515,16 @@ usage () {
 	pm_safe_exit ${1:-1}
 }
 
-globstrip () { local in ; in=${1%[*]} ; in=${in%\\} ; echo $in ; }
-
 # Takes a pattern as input
 # Return values:
 # 0 - Matched one and only one directory in $pdb
 # 1 - No match
 # 2 - Matched multiple directories
-#
 find_glob_dirs () {
 	# Global: glob_dirs
 	local pattern
 
-	pattern=`globstrip $1`
+	pattern=`pm_globstrip $1`
 	glob_dirs=`pkg query -g "%n-%v" ${pattern}\*`
 	case "$glob_dirs" in
 	# Match a newline in multiple responses from find
@@ -558,7 +558,6 @@ origin_from_pdb () {
 	fi
 }
 
-#=============== End functions we always want to have ===============
 #=============== Begin Command Line Option Processing ===============
 
 packages_init () {
@@ -590,10 +589,12 @@ cross_idx () {
 	esac
 }
 
+# processing long options
 for var in "$@" ; do
 	case "$var" in
 	-PP[A-Za-z0-9]*|-*[A-Za-z0-9]PP*)
 				fail 'The -PP option has been deprecated';;
+# Packages options
 	--packages)		packages_init first ;;
 	--packages-build)	packages_init build
 				unset PM_PACKAGES
@@ -611,15 +612,10 @@ for var in "$@" ; do
 				export LOCAL_PACKAGEDIR ;;
 	--delete-packages)	PM_DELETE_PACKAGES=pm_delete_packages
 				export PM_DELETE_PACKAGES ;;
-	-[A-Za-z0-9]*)		newopts="$newopts $var" ;;
-	--update-if-newer)	PM_UPDATE_IF_NEWER=pm_update_if_newer
-				export PM_UPDATE_IF_NEWER ;;
-	--delete-build-only)	PM_DEL_BUILD_ONLY=pm_dbo
-				export PM_DEL_BUILD_ONLY ;;
-	--no-confirm)		PM_NO_CONFIRM=pm_no_confirm
-				export PM_NO_CONFIRM ;;
-	--no-term-title)	PM_NO_TERM_TITLE=pm_no_term_title
-				export PM_NO_TERM_TITLE ;;
+	--clean-packages)	CLEAN_PACKAGES=clean_packages ;;
+	--clean-packages-all)	echo "===>>> The -all form is deprecated, please use -y instead"
+				CLEAN_PACKAGES=clean_packages ; PM_YES=yopt ;;
+# Index options
 	--no-index-fetch)	PM_NO_INDEX_FETCH=pm_no_index_fetch ;;
 	--index)		cross_idx "index $*" ; PM_INDEX=pm_index ; export PM_INDEX ;;
 	--index-first)		cross_idx "first $*" ; PM_INDEX=pm_index
@@ -628,14 +624,20 @@ for var in "$@" ; do
 	--index-only)		cross_idx "only $*" ; PM_INDEX=pm_index
 				PM_INDEX_ONLY=pm_index_only
 				export PM_INDEX PM_INDEX_ONLY ;;
+# Other options
+	--update-if-newer)	PM_UPDATE_IF_NEWER=pm_update_if_newer
+				export PM_UPDATE_IF_NEWER ;;
+	--delete-build-only)	PM_DEL_BUILD_ONLY=pm_dbo
+				export PM_DEL_BUILD_ONLY ;;
+	--no-confirm)		PM_NO_CONFIRM=pm_no_confirm
+				export PM_NO_CONFIRM ;;
+	--no-term-title)	PM_NO_TERM_TITLE=pm_no_term_title
+				export PM_NO_TERM_TITLE ;;
 	--help)			usage 0 ;;
 	--version)		pm_version ; exit 0 ;;
 	--clean-distfiles)	CLEAN_DISTFILES=clean_distfiles ;;
 	--clean-distfiles-all)	echo "===>>> The -all form is deprecated, please use -y instead"
 				CLEAN_DISTFILES=clean_distfiles ; PM_YES=yopt ;;
-	--clean-packages)	CLEAN_PACKAGES=clean_packages ;;
-	--clean-packages-all)	echo "===>>> The -all form is deprecated, please use -y instead"
-				CLEAN_PACKAGES=clean_packages ; PM_YES=yopt ;;
 	--check-depends)	CHECK_DEPENDS=check_depends ;;
 	--check-port-dbdir)	CHECK_PORT_DBDIR=check_port_dbdir ;;
 	--list-origins)		LIST_ORIGINS=list_origins ;;
@@ -644,6 +646,7 @@ for var in "$@" ; do
 	--force-config)		export PM_FORCE_CONFIG=pm_force_config ;;
 	--*)			echo "Illegal option $var" ; echo ''
 				echo "===>>> Try ${0##*/} --help"; exit 1 ;;
+	-[A-Za-z0-9]*)		newopts="$newopts $var" ;;
 	*)			newopts="$newopts $var" ;;
 	esac
 done
@@ -706,13 +709,14 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 	x)	case "$OPTARG" in
 		-*)	fail 'The -x option requires an argument' ;;
 		esac
-		PM_EXCL="${PM_EXCL}`globstrip ${OPTARG}` " ;;
+		PM_EXCL="${PM_EXCL}`pm_globstrip ${OPTARG}` " ;;
 	y)	PM_YES=yopt; ARGS="-y $ARGS" ;;
 	*)	echo '' ; echo "===>>> Try ${0##*/} --help"; exit 1 ;;
 	esac
 done
 shift $(( $OPTIND - 1 ))
 
+#=============== Begin Command Line Option Consistency Checks ===============
 [ -n "$PM_YES" -a -n "$PM_NO" ] && fail 'The -y and -n options are mutually exclusive'
 
 [ -n "$PM_EXCL" ] && export PM_EXCL
@@ -763,10 +767,8 @@ fi
 unset my_environment COMMAND_LINE_ARGUMENT
 unset -f packages_init cross_idx test_command_line
 
-#=============== End Command Line Option Processing ===============
-
 # Update based on options chosen above
-if [ "$$" -eq "$PM_PARENT_PID" ]; then
+if [ "$$" -eq "$PM_PARENT_PID" ]; then # [ parent ]
 	# Continue error checking in parent only
 	[ -n "$PM_URB" -o -n "$UPDATE_ALL" ] && [ -n "$1" ] &&
 	    fail 'The -[ar] options are not compatible with other updates'
@@ -2915,7 +2917,7 @@ no_valid_port () {
 # Figure out what we are going to be working on
 if [ -z "$REPLACE_ORIGIN" ]; then
 	[ -n "$portdir" ] && { argv=$portdir ; unset portdir; }
-	argv=${argv:-$1} ; argv=${argv%/} ; argv=`globstrip $argv`
+	argv=${argv:-$1} ; argv=${argv%/} ; argv=`pm_globstrip $argv`
 	case "$argv" in
 	$pd/*)	portdir=${argv#$pd/} ;;
 	$pdb/*)	upg_port=${argv#$pdb/}
