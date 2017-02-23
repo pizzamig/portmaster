@@ -7,6 +7,12 @@ trap pm_trap_exit INT
 
 umask 022
 
+: ${PM_SUBR_DIR:="."}
+
+if [ ! -r ${PM_SUBR_DIR}/portmaster.subr ]; then
+	echo -e "\n===>>> portmaster subroutine not found"
+	exit 1
+fi
 #=============== Initialization of crucial variables [ parent ] ===============
 # PM_PARENT_PID TMPDIR PATH
 # reading configuration files
@@ -327,26 +333,6 @@ pm_unlink_s       () { [ -e "$1" ] && $PM_SU_CMD /bin/unlink $1; }
 
 pm_v              () { [ -n "$PM_VERBOSE" ] && echo -e "$*"; }
 pm_sv             () { [ -n "$PM_SU_VERBOSE" ] && echo -e "===>>> SU $*"; }
-
-# string manipulation functions
-pm_globstrip () { local in ; in=${1%[*]} ; in=${in%\\} ; echo $in ; }
-
-# Takes a pattern as input; return values
-# 0 - Matched one and only one directory in $pdb
-# 1 - No match
-# 2 - Matched multiple directories
-pm_find_glob_pkgs () {
-	# Global glob_pkgs
-	local pattern num
-	pattern="$(pm_globstrip $1)"
-	num=$(pkg info -g ${pattern}\* | wc -l)
-	glob_pkgs="$(pkg query -g "%n-%v" ${pattern}\*)"
-	case $num in
-	0) unset glob_pkgs; return 1 ;;
-	1) return 0 ;;
-	*) return 2 ;;
-	esac
-}
 
 # get the origin from a pkg name
 pm_pkg_origin () {
