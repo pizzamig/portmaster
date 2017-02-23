@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# external tools manipulation
+: "${PKG:="pkg"}"
+
+# string manipulation
+
+# removing trailing glob chars
+pm_globstrip ()
+{
+	local in
+	in=${1%[*]}
+	in=${in%\\}
+	echo $in
+}
+
+# Takes a pattern as input; return values
+# 0 - Matched one and only one directory in $pdb
+# 1 - No match
+# 2 - Matched multiple directories
+pm_find_glob_pkgs () {
+	# Global glob_pkgs
+	local pattern num
+	pattern="$(pm_globstrip $1)"
+	num=$(pkg info -g ${pattern}\* | wc -l | tr -d " ")
+	glob_pkgs="$(pkg query -g "%n-%v" ${pattern}\*)"
+	case $num in
+	0) unset glob_pkgs; return 1 ;;
+	1) return 0 ;;
+	*) return 2 ;;
+	esac
+}
