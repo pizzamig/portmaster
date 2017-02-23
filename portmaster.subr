@@ -3,21 +3,22 @@
 # external tools manipulation
 : "${PKG:="pkg"}"
 
-# string manipulation
+# common useful definitions
+PM_TRUE=0
+PM_FALSE=1
 
 # removing trailing glob chars
-pm_globstrip ()
-{
+pm_globstrip () {
 	local in
 	in=${1%[*]}
 	in=${in%\\}
 	echo $in
 }
 
-# Takes a pattern as input; return values
-# 0 - Matched one and only one directory in $pdb
+# Takes a pkg pattern as input( bash, perl, ...) ; return values
+# 0 - Matched one and only one package
 # 1 - No match
-# 2 - Matched multiple directories
+# 2 - Matched multiple packages
 pm_find_glob_pkgs () {
 	# Global glob_pkgs
 	local pattern num
@@ -29,4 +30,20 @@ pm_find_glob_pkgs () {
 	1) return 0 ;;
 	*) return 2 ;;
 	esac
+}
+
+# get the origin from a pkg name [name-version]; return values
+# 0 - package found
+# 1 - package not found
+# 2 - package ignored using as +IGNOREME
+#     (pdb has to be correctly initialized)
+# 3 - bsdpan package (a relics)
+pm_pkg_origin () {
+	if [  -e "$pdb/$1/+IGNOREME" ]; then
+		echo "  ===>>> $pdb/$1/+IGNOREME exists" >&2
+		return 2
+	fi
+	pkg query '%o' $1 2>/dev/null && return 0
+	case "$1" in bsdpan-*) return 3 ;; esac
+	return 1
 }

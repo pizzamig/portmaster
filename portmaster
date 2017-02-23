@@ -43,9 +43,6 @@ fi
 
 #=============== Common functions definition ===============
 
-PM_TRUE=0
-PM_FALSE=1
-
 pm_version () { echo '' ; echo "===>>> Version 3.18.0" ; }
 
 fail () {
@@ -333,17 +330,6 @@ pm_unlink_s       () { [ -e "$1" ] && $PM_SU_CMD /bin/unlink $1; }
 
 pm_v              () { [ -n "$PM_VERBOSE" ] && echo -e "$*"; }
 pm_sv             () { [ -n "$PM_SU_VERBOSE" ] && echo -e "===>>> SU $*"; }
-
-# get the origin from a pkg name
-pm_pkg_origin () {
-	if [  -e "$pdb/$1/+IGNOREME" ]; then
-		echo "  ===>>> $pdb/$1/+IGNOREME exists" >&2
-		return 2
-	fi
-	pkg query '%o' $1 2>/dev/null && return 0
-	case "$1" in bsdpan-*) return 3 ;; esac
-	return 1
-}
 
 #=============== Initialization of ports variables [ parent ] ===============
 # pd (ports dir); pdb (pkg db dir); port_dbdir (port configuration)
