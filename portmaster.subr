@@ -108,17 +108,40 @@ pm_get_inst_pkgname () {
 	return rc
 }
 
+# look for moved origin ports
+pm_find_moved_origin () {
+	local origin newOrigin
+	origin=$1
+	if [ -n "$(grep "^${origin}||" $pd/MOVED)" ]; then
+		# ports removed
+		return 2
+	fi
+	if [ "$(grep -c "^${origin}|" $pd/MOVED)" -eq 1 ]; then
+		# ports moved to another origin
+		newOrigin=$(grep "^${origin}|" $pd/MOVED | sed "s%^${origin}|%%")
+		reason=$(echo $newOrigin | sed "s%.*|,*|%%")
+		newOrigin=${newOrigin%%|*}
+		echo $newOrigin
+		return 1
+	fi
+	return 0
+}
+
 # get the distfiles from a pkg name, using the portstree
 pm_get_distfiles () {
 	local origin
 	origin="$(pm_get_origin $1)"
+	# TODO add support to moved ports
+	if [ ! -d $pd/$origin ]; then
+		# check the moved ports
+	fi
 	if [ -s $pd/$origin/distinfo ]; then
 		fgrep SIZE $pd/$origin/distinfo | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
 	fi
 }
 
 # --clean-distfiles ; no arguments needed
-# $pd and $DISTDIR
+# reqs:    $pd and $DISTDIR
 # options: $PM_THOROUGH, $PM_YES, $PM_NO
 pm_clean_distfiles () {
 	local DI_FILES
@@ -128,7 +151,7 @@ pm_clean_distfiles () {
 		# get the list of distfiles needed by the whole portstree
 		for _distinfo in $pd/*/*/distinfo
 		do
-			grep SIZE "$_distinfo" | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
+			fgrep SIZE "$_distinfo" | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
 		done > $DI_FILES
 	else
 		# get the list of distfiles needed by the installed pkgs
@@ -139,13 +162,13 @@ pm_clean_distfiles () {
 	# get the list of distfiles stored in the system and
 	# remove distfiles not related to installed pkgs
 	echo "===>>> Checking for stale distfiles" ; echo ''
-	for _dif in $(find $DISTDIR -type f) ; do
+	for _dif in $(find -s $DISTDIR -type f) ; do
 		__dif=${_dif#$DISTDIR}
 		if ! grep -sql ^$__dif $DI_FILES; then
-			pm_get_yesno n "\t===>>> Deleate stale file: $__dif"
+			pm_get_yesno n "\t===>>> Delete stale file: $__dif"
 			case "$?" in
 			$PM_TRUE)
-				echo -e "\tDeleting $__dif" ; echo
+				echo -e "\tDeleting $__dif"
 				/bin/unlink $__dif ;;
 			*)
 				continue ;;
