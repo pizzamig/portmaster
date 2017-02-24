@@ -7,6 +7,7 @@
 PM_TRUE=0
 PM_FALSE=1
 
+# true if the current shell is the parent shell
 pm_is_parent() {
 	if [ "$$" -eq "$PM_PARENT_PID" ]; then
 		return $PM_TRUE
@@ -21,10 +22,10 @@ pm_is_parent() {
 # $1 is the default value (affects the output only)
 pm_get_yesno() {
 	local default answer
-	default=$1
-	[ -n $PM_YES ] && return $PM_TRUE
-	[ -n $PM_NO ] && return $PM_FALSE
-	while : ; do
+	default=$1 ; shift
+	[ -n "${PM_YES}" ] && return $PM_TRUE
+	[ -n "${PM_NO}" ] && return $PM_FALSE
+	while true ; do
 		echo -e "$* [${default}] \c"
 		read answer
 		echo
@@ -34,7 +35,7 @@ pm_get_yesno() {
 		[Yy])
 			return $PM_TRUE ;;
 		*)
-			echo "\t===>>> $answer is not a valid answer"
+			echo -e "\t===>>> $answer is not a valid answer"
 		esac
 	done
 }
@@ -44,6 +45,7 @@ pm_mktemp_file() {
 	_temp=$(/usr/bin/mktemp -t pm-${PM_PARENT_PID}-$1 2>&1) ||
 		fail "mktemp for $1 failed: \n\t${_temp#mktemp: }"
 	echo $_temp
+	TEMP_FILE_LIST="${TEMP_FILE_LIST}${_temp} "
 }
 
 # removing trailing glob chars
@@ -93,7 +95,7 @@ pm_get_origin () {
 # return values
 # 0 - package found
 # 1 - package not found
-# 2 - multiple packages [TODO: subpackages and flavor]
+# 2 - multiple packages [TODO: check with subpackages and flavor]
 pm_get_inst_pkgname () {
 	local num rc
 	num=$( pkg query -e "%o = ${1}" '%n-%v' | wc -l | tr -d " " )
@@ -106,7 +108,7 @@ pm_get_inst_pkgname () {
 	return rc
 }
 
-# get the distfiles from a pkg name
+# get the distfiles from a pkg name, using the portstree
 pm_get_distfiles () {
 	local origin
 	origin="$(pm_get_origin $1)"
@@ -115,6 +117,9 @@ pm_get_distfiles () {
 	fi
 }
 
+# --clean-distfiles ; no arguments needed
+# $pd and $DISTDIR
+# options: $PM_THOROUGH, $PM_YES, $PM_NO
 pm_clean_distfiles () {
 	local DI_FILES
 	[ -n "$DISTDIR" ] || fail 'DISTDIR is not defined'
@@ -133,13 +138,14 @@ pm_clean_distfiles () {
 	fi
 	# get the list of distfiles stored in the system and
 	# remove distfiles not related to installed pkgs
+	echo "===>>> Checking for stale distfiles" ; echo ''
 	for _dif in $(find $DISTDIR -type f) ; do
 		__dif=${_dif#$DISTDIR}
 		if ! grep -sql ^$__dif $DI_FILES; then
 			pm_get_yesno n "\t===>>> Deleate stale file: $__dif"
 			case "$?" in
 			$PM_TRUE)
-				echo "\tDeleting $__dif" ; echo
+				echo -e "\tDeleting $__dif" ; echo
 				/bin/unlink $__dif ;;
 			*)
 				continue ;;
