@@ -54,11 +54,11 @@ test_pm_find_moved_origin_2()
 
 test_pm_find_moved_origin_3()
 {
-	local rc origin
-	origin=$(pm_find_moved_origin net/samba4wins)
+	local rc reason
+	reason=$(pm_find_moved_origin net/samba4wins)
 	rc=$?
 	assertEquals "2" "$rc"
-	assertTrue "[ -z $origin ]"
+	assertEquals "Not staged" "$reason"
 }
 
 #test_pm_find_moved_origin_4()

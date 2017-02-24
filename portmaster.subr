@@ -108,18 +108,26 @@ pm_get_inst_pkgname () {
 	return rc
 }
 
-# look for moved origin ports
+# look for moved ports origin
+# get the new origin or the reason why it's deleted
+# reqs: $pd
+# return values
+# 0 - origin not found
+# 1 - ports moved to another origin
+# 2 - ports removed
 pm_find_moved_origin () {
-	local origin newOrigin
+	local origin newOrigin reason
 	origin=$1
 	if [ -n "$(grep "^${origin}||" $pd/MOVED)" ]; then
 		# ports removed
+		reason=$(grep "^${origin}||" $pd/MOVED | sed "s%^.*||.*|%%")
+		echo $reason
 		return 2
 	fi
 	if [ "$(grep -c "^${origin}|" $pd/MOVED)" -eq 1 ]; then
 		# ports moved to another origin
 		newOrigin=$(grep "^${origin}|" $pd/MOVED | sed "s%^${origin}|%%")
-		reason=$(echo $newOrigin | sed "s%.*|,*|%%")
+		reason=$(echo $newOrigin | sed "s%.*|.*|%%")
 		newOrigin=${newOrigin%%|*}
 		echo $newOrigin
 		return 1
