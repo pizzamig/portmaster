@@ -7,6 +7,45 @@
 PM_TRUE=0
 PM_FALSE=1
 
+pm_is_parent() {
+	if [ "$$" -eq "$PM_PARENT_PID" ]; then
+		return $PM_TRUE
+	else
+		return $PM_FALSE
+	fi
+}
+
+# ask the user to type y or n and return properly
+# if the user type y or PM_YES, PM_TRUE is returned
+# if the user type n or PM_NO, PM_FALSE is returned
+# $1 is the default value (affects the output only)
+pm_get_yesno() {
+	local default answer
+	default=$1
+	[ -n $PM_YES ] && return $PM_TRUE
+	[ -n $PM_NO ] && return $PM_FALSE
+	while : ; do
+		echo -e "$* [${default}] \c"
+		read answer
+		echo
+		case "$answer" in
+		[Nn])
+			return $PM_FALSE ;;
+		[Yy])
+			return $PM_TRUE ;;
+		*)
+			echo "\t===>>> $answer is not a valid answer"
+		esac
+	done
+}
+
+pm_mktemp_file() {
+	local _temp
+	_temp=$(/usr/bin/mktemp -t pm-${PM_PARENT_PID}-$1 2>&1) ||
+		fail "mktemp for $1 failed: \n\t${_temp#mktemp: }"
+	echo $_temp
+}
+
 # removing trailing glob chars
 pm_globstrip () {
 	local in
@@ -19,6 +58,7 @@ pm_globstrip () {
 # 0 - Matched one and only one package
 # 1 - No match
 # 2 - Matched multiple packages
+# The variabl glob_pkgs will contain the package names
 pm_find_glob_pkgs () {
 	# Global glob_pkgs
 	local pattern num
@@ -38,7 +78,7 @@ pm_find_glob_pkgs () {
 # 2 - package ignored using as +IGNOREME
 #     (pdb has to be correctly initialized)
 # 3 - bsdpan package (a relics)
-pm_pkg_origin () {
+pm_get_origin () {
 	if [  -e "$pdb/$1/+IGNOREME" ]; then
 		echo "  ===>>> $pdb/$1/+IGNOREME exists" >&2
 		return 2
@@ -46,4 +86,66 @@ pm_pkg_origin () {
 	pkg query '%o' $1 2>/dev/null && return 0
 	case "$1" in bsdpan-*) return 3 ;; esac
 	return 1
+}
+
+# former iport_from_origin | TODO to be adopted | TODO to be tested
+# get the installed pkg name [name-version] from an origin; it echos the installed version
+# return values
+# 0 - package found
+# 1 - package not found
+# 2 - multiple packages [TODO: subpackages and flavor]
+pm_get_inst_pkgname () {
+	local num rc
+	num=$( pkg query -e "%o = ${1}" '%n-%v' | wc -l | tr -d " " )
+	case $num in
+	0) return 1 ;;
+	1) rc=0 ;;
+	*) rc=2 ;;
+	esac
+	pkg query -e "%o = ${1}" '%n-%v'
+	return rc
+}
+
+# get the distfiles from a pkg name
+pm_get_distfiles () {
+	local origin
+	origin="$(pm_get_origin $1)"
+	if [ -s $pd/$origin/distinfo ]; then
+		fgrep SIZE $pd/$origin/distinfo | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
+	fi
+}
+
+pm_clean_distfiles () {
+	local DI_FILES
+	[ -n "$DISTDIR" ] || fail 'DISTDIR is not defined'
+	DI_FILES=$(pm_mktemp_file DISTINFO)
+	if [ -n "$PM_THOROUGH" ]; then # [ -t ]
+		# get the list of distfiles needed by the whole portstree
+		for _distinfo in $pd/*/*/distinfo
+		do
+			grep SIZE "$_distinfo" | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
+		done > $DI_FILES
+	else
+		# get the list of distfiles needed by the installed pkgs
+		for _pkg in $( pkg query '%n-%v' ) ; do
+			pm_get_distfiles $_pkg
+		done > $DI_FILES
+	fi
+	# get the list of distfiles stored in the system and
+	# remove distfiles not related to installed pkgs
+	for _dif in $(find $DISTDIR -type f) ; do
+		__dif=${_dif#$DISTDIR}
+		if ! grep -sql ^$__dif $DI_FILES; then
+			pm_get_yesno n "\t===>>> Deleate stale file: $__dif"
+			case "$?" in
+			$PM_TRUE)
+				echo "\tDeleting $__dif" ; echo
+				/bin/unlink $__dif ;;
+			*)
+				continue ;;
+			esac
+		fi
+	done
+	# TODO: remove empty directories under /usr/ports/distfiles
+	# TODO: clean temporary files and exit
 }

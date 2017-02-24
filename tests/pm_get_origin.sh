@@ -34,37 +34,37 @@ pkg_query()
 }
 
 # test cases
-test_pm_pkg_origin()
+test_pm_get_origin()
 {
 	local rc origin
-	origin=$(pm_pkg_origin bash-4.4.12)
+	origin=$(pm_get_origin bash-4.4.12)
 	rc=$?
 	assertEquals "2" "$rc"
 	assertTrue "[ -z $origin ]"
 }
 
-test_pm_pkg_origin_2()
+test_pm_get_origin_2()
 {
 	local rc origin
-	origin=$(pm_pkg_origin perl5-5.24.1)
+	origin=$(pm_get_origin perl5-5.24.1)
 	rc=$?
 	assertEquals "0" "$rc"
 	assertEquals "lang/perl5.24" "$origin"
 }
 
-test_pm_pkg_origin_3()
+test_pm_get_origin_3()
 {
 	local rc origin
-	origin=$(pm_pkg_origin bsdpan-relics)
+	origin=$(pm_get_origin bsdpan-relics)
 	rc=$?
 	assertEquals "3" "$rc"
 	assertTrue "[ -z $origin ]"
 }
 
-test_pm_pkg_origin_4()
+test_pm_get_origin_4()
 {
 	local rc origin
-	origin=$(pm_pkg_origin asdf-3.4)
+	origin=$(pm_get_origin asdf-3.4)
 	rc=$?
 	assertEquals "1" "$rc"
 	assertTrue "[ -z $origin ]"

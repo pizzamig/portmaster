@@ -658,7 +658,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 			esac
 		fi
 		PM_URB_IPORTS="${PM_URB_IPORTS}${glob_pkgs} "
-		PM_URB_ORIGINS="${PM_URB_ORIGINS}`pm_pkg_origin ${glob_pkgs}` "
+		PM_URB_ORIGINS="${PM_URB_ORIGINS}`pm_get_origin ${glob_pkgs}` "
 		unset glob_pkgs ;;
 	s)	CLEAN_STALE=sopt ;;
 	t)	PM_THOROUGH=topt; ARGS="-t $ARGS" ;;
@@ -920,7 +920,7 @@ get_answer_yn () {
 		get_answer_g $default $option "${*}? y/n"
 		case "${?}${default}" in
 		0y|1n)	return $PM_TRUE ;;
-		0n|1y)	return $PM_FALSE1 ;;
+		0n|1y)	return $PM_FALSE ;;
 		esac
 	else
 		[ -n "$PM_YES" ] && return $PM_TRUE
@@ -1359,7 +1359,7 @@ check_for_updates () {
 
 	[ "$1" = 'list' -o "$1" = 'multi' ] && { nf=nonfatal; shift; }
 
-	iport=$1 ; origin=${2:-`pm_pkg_origin $iport`} || return 0
+	iport=$1 ; origin=${2:-`pm_get_origin $iport`} || return 0
 
 	if [ -n "$PM_INDEX" ]; then
 		case "$PM_INDEX_PORTS" in
@@ -1865,7 +1865,7 @@ if [ -n "$EXPUNGE" ]; then
 		esac
 	fi
 
-	origin=$(pm_pkg_origin $EXPUNGE)
+	origin=$(pm_get_origin $EXPUNGE)
 	deplist=`pkg query "%rn-%rv" $origin`
 	if [ -n "$deplist" ]; then
 		echo "===>>> Warning: Ports with dependencies on ${EXPUNGE}:"
@@ -1896,7 +1896,7 @@ if [ -n "$CLEAN_STALE" ]; then
 
 		case "$no_del_list" in *:${iport}:*) continue ;; esac
 
-		origin=`pm_pkg_origin $iport`
+		origin=`pm_get_origin $iport`
 		echo '' ; pkg info -f $iport
 		pkg_delete="pkg delete"
 
@@ -2294,7 +2294,7 @@ dependency_check () {
 				confl_p=`pkg query -g "%n-%v" $glob 2>/dev/null`
 				if [ -n "$confl_p" ]; then
 					confl_p=${confl_p%% *}
-					d_port="$pd/`pm_pkg_origin $confl_p`"
+					d_port="$pd/`pm_get_origin $confl_p`"
 
 					if [ "${d_port#$pd/}" = "$portdir" ]; then
 						echo -e "\n===>>> $origin seems to depend on $portdir"
@@ -2599,7 +2599,7 @@ multiport () {
 		for port in $worklist; do
 			case "$port" in
 			*/*)	run_dl_g="$run_dl_g ${pd}/${port} " ;;
-			*)	run_dl_g="$run_dl_g ${pd}/`pm_pkg_origin $port` " ;;
+			*)	run_dl_g="$run_dl_g ${pd}/`pm_get_origin $port` " ;;
 			esac
 		done
 	fi
@@ -2610,7 +2610,7 @@ multiport () {
 	for port in $worklist; do
 		case "$port" in
 		*/*)	origin=$port ;;
-		*)	origin=`pm_pkg_origin $port` ;;
+		*)	origin=`pm_get_origin $port` ;;
 		esac
 
 		case "$PM_NEEDS_UPDATE" in
@@ -2655,7 +2655,7 @@ multiport () {
 				numports=$(( $numports - 1 ))
 				continue
 			fi
-			origin=`pm_pkg_origin $port` ;;
+			origin=`pm_get_origin $port` ;;
 		esac
 
 		case "$PM_NEEDS_UPDATE" in
@@ -2791,7 +2791,7 @@ all_first_pass () {
 
 		case "$CUR_DEPS" in *:${iport}:*) continue ;; esac
 
-		origin=`pm_pkg_origin $iport` || {
+		origin=`pm_get_origin $iport` || {
 			case "$?" in
 			3) ;;
 			2)	pm_v "	===>>> No ORIGIN for $iport, and +IGNOREME is present"
@@ -2932,7 +2932,7 @@ else
 			unset glob_pkgs
 		fi
 		if [ -n "$ro_upg_port" ]; then
-			ro_opd=`pm_pkg_origin $ro_upg_port`
+			ro_opd=`pm_get_origin $ro_upg_port`
 		else
 			ro_opd=$arg2
 		fi
@@ -2956,7 +2956,7 @@ else
 fi
 
 if [ -n "$upg_port" -a -z "$portdir" ]; then
-	portdir=`pm_pkg_origin $upg_port` || {
+	portdir=`pm_get_origin $upg_port` || {
 	case "$?" in
 	3)	echo ''; echo "===>>> BSDPAN ports cannot be upgraded with portmaster"
 		echo "       (${upg_port})"; echo ''; pm_safe_exit 1 ;;
