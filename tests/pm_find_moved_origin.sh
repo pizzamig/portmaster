@@ -35,7 +35,7 @@ pkg_query()
 
 # test cases 
 test_pm_find_moved_origin()
-{
+{ # port not moved
 	local rc origin
 	origin=$(pm_find_moved_origin shells/bash)
 	rc=$?
@@ -44,7 +44,7 @@ test_pm_find_moved_origin()
 }
 
 test_pm_find_moved_origin_2()
-{
+{ # port moved
 	local rc origin
 	origin=$(pm_find_moved_origin graphics/hsetroot)
 	rc=$?
@@ -53,7 +53,7 @@ test_pm_find_moved_origin_2()
 }
 
 test_pm_find_moved_origin_3()
-{
+{ # port removed
 	local rc reason
 	reason=$(pm_find_moved_origin net/samba4wins)
 	rc=$?
@@ -61,14 +61,23 @@ test_pm_find_moved_origin_3()
 	assertEquals "Not staged" "$reason"
 }
 
-#test_pm_find_moved_origin_4()
-#{
-	#local rc origin
-	#origin=$(pm_find_moved_origin asdf-3.4)
-	#rc=$?
-	#assertEquals "1" "$rc"
-	#assertTrue "[ -z $origin ]"
-#}
+test_pm_find_moved_origin_4()
+{ # port moved twice
+	local rc origin
+	origin=$(pm_find_moved_origin test/foo)
+	rc=$?
+	assertEquals "1" "$rc"
+	assertEquals "test/foo3" "$origin"
+}
+
+test_pm_find_moved_origin_5()
+{ # port moved and then removed
+	local rc reason
+	reason=$(pm_find_moved_origin test/bar)
+	rc=$?
+	assertEquals "2" "$rc"
+	assertEquals "Has been deleted" "$reason"
+}
 
 setUp()
 {

@@ -128,9 +128,16 @@ pm_find_moved_origin () {
 		# ports moved to another origin
 		newOrigin=$(grep "^${origin}|" $pd/MOVED | sed "s%^${origin}|%%")
 		reason=$(echo $newOrigin | sed "s%.*|.*|%%")
-		newOrigin=${newOrigin%%|*}
-		echo $newOrigin
-		return 1
+		origin=${newOrigin%%|*}
+		newOrigin=$(pm_find_moved_origin $origin)
+		case $? in
+		0) echo $origin
+			return 1 ;;
+		1) echo $newOrigin
+			return 1 ;;
+		2) echo $newOrigin
+			return 2 ;;
+		esac
 	fi
 	return 0
 }
