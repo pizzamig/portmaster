@@ -146,9 +146,12 @@ pm_find_moved_origin () {
 pm_get_distfiles () {
 	local origin
 	origin="$(pm_get_origin $1)"
-	# TODO add support to moved ports
 	if [ ! -d $pd/$origin ]; then
 		# check the moved ports
+		origin=$(pm_find_moved_origin $origin)
+		case $? in
+		0|2) return ;;
+		esac
 	fi
 	if [ -s $pd/$origin/distinfo ]; then
 		fgrep SIZE $pd/$origin/distinfo | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
