@@ -1195,15 +1195,7 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 fi	# [ -n "$CLEAN_PACKAGES" ]
 
 if [ -n "$CHECK_DEPENDS" ]; then
-	missing_deps=$(pkg check -dn)
-	pkg query "%o %do" | while read origin dep; do
-		for missing_dep in ${missing_deps}; do
-			if [ "${missing_dep}" = "${dep}" ]; then
-				echo "${origin} requires missing ${dep}"
-				break
-			fi
-		done
-	done
+	pm_check_depends
 	exit
 fi
 
