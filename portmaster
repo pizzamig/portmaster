@@ -1140,30 +1140,7 @@ parse_index () {
 #=============== Begin code relevant only to --features ===============
 
 if [ -n "$CLEAN_DISTFILES" ]; then
-	[ -n "$DISTDIR" ] || fail 'There is no DISTDIR to clean'
-
-	# Set the file name here since we are usually called in a subshell
-	pm_mktemp DI-FILES ; DI_FILES=$pm_mktemp_file
-
-	if [ -z "$PM_THOROUGH" ]; then
-		read_distinfos
-	else
-		read_distinfos_all
-	fi
-
-	echo "===>>> Checking for stale distfiles" ; echo ''
-	for df in `find $DISTDIR -type f | sort`; do
-		f=${df#$DISTDIR}
-		if ! grep -ql ^$f $DI_FILES; then
-			get_answer_yn n "\t===>>> Delete stale file: $f"
-			case "$?" in
-			0)	echo "       Deleting $f" ; echo ''
-				/bin/unlink $df ;;
-			*)	continue ;;
-			esac
-		fi
-	done
-
+	pm_clean_distfiles
 	delete_empty_dist_subdirs
 	pm_safe_exit
 fi
