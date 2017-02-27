@@ -158,6 +158,36 @@ pm_find_moved_origin () {
 	return 0
 }
 
+# get the origin from a pkg name [name-version] with MOVED support
+# return values:
+# 0 - package found
+# 1 - package not found
+# 2 - package ignored using as +IGNOREME
+#     (pdb has to be correctly initialized)
+# 3 - bsdpan package (a relics)
+# 4 - origin not valid (not found)
+# 5 - origin (pkg) removed
+pm_get_moved_origin() {
+	local origin
+	origin=$(pm_get_origin $1)
+	case $? in
+	3) return 3 ;;
+	2) return 2 ;;
+	1) return 1 ;;
+	esac
+	if [ -d $pd/$origin ]; then
+		echo $origin
+		return 0;
+	fi
+	origin=$(pm_find_moved_origin $origin)
+	case $? in
+	0) return 4 ;;
+	2) return 5 ;;
+	esac
+	echo $origin
+	return 0
+}
+
 # get the distfiles from a pkg name, using the portstree
 pm_get_distfiles () {
 	local origin
@@ -174,6 +204,26 @@ pm_get_distfiles () {
 	fi
 }
 
+# get ports lists, per category: roots, trunks, branches, leaves
+# exports: roots, trunks, branches, leaves
+# exports: num_roots, num_trunks, num_branches, num_leaves, num_ports
+pm_ports_by_category () {
+	roots=$( pkg query -e "%#d = 0 && %#r = 0" "%n-%v")
+	trunks=$( pkg query -e "%#d = 0 && %#r > 0" "%n-%v")
+	branches=$( pkg query -e "%#d > 0 && %#r > 0" "%n-%v")
+	leaves=$( pkg query -e "%#d > 0 && %#r = 0" "%n-%v")
+
+	num_roots=$( echo $roots | wc -w | tr -d " ")
+	num_trunks=$( echo $trunks | wc -w | tr -d " ")
+	num_branches=$( echo $branches | wc -w | tr -d " ")
+	num_leaves=$( echo $leaves | wc -w | tr -d " ")
+	num_ports=$( pkg query -a "%n-%v" | wc -w | tr -d " ")
+}
+
+pm_check_for_updates () {
+	local pkgname origin
+	# TODO: implement it
+}
 #============ High level functions =============
 
 # --clean-distfiles ; no arguments needed
@@ -251,4 +301,28 @@ pm_check_port_dbdir () {
 			fi
 		fi
 	done
+}
+
+# -l and -L ;
+pm_list () {
+	echo "===>>> Root ports (No dependencies, not depended on)"
+	for p in $roots; do
+		echo "===>>> $p"
+	done
+	echo "===>>> $num_roots root ports"; echo
+	echo "===>>> Trunk ports (No dependencies, are depended on)"
+	for p in $trunks; do
+		echo "===>>> $p"
+	done
+	echo "===>>> $num_trunks trunk ports"; echo
+	echo "===>>> Branches ports (Have dependencies, are depended on)"
+	for p in $branches; do
+		echo "===>>> $p"
+	done
+	echo "===>>> $num_branches branch ports"; echo
+	echo "===>>> Leaf ports (Have dependencies, not depended on)"
+	for p in $leaves; do
+		echo "===>>> $p"
+	done
+	echo "===>>> $num_leaves leaf ports"; echo
 }
