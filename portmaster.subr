@@ -16,6 +16,15 @@ pm_is_parent() {
 	fi
 }
 
+# true if the current shell runs with superuser priviligese
+pm_has_su_privileges() {
+	if [ $(id -u) -eq 0 ]; then
+		return $PM_TRUE
+	else
+		return $PM_FALSE
+	fi
+}
+
 # ask the user to type y or n and return properly
 # if the user type y or PM_YES, PM_TRUE is returned
 # if the user type n or PM_NO, PM_FALSE is returned
@@ -203,3 +212,16 @@ pm_clean_distfiles () {
 	# TODO: remove empty directories under /usr/ports/distfiles
 	# TODO: clean temporary files and exit
 }
+
+# -- check-depends ;
+# reqs: superuser privileges
+pm_check_depends () {
+	local origin
+	# TODO: pkg check needs superuser privileges O–O
+	pkg check -dnq | while read pkgname missinglib; do
+		origin=$(pkg query "%o" $pkgname)
+		echo "$pkgname ($origin) requires missing $missinglib"
+	done
+	# TODO: a clean exit
+}
+
