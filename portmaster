@@ -13,6 +13,8 @@ if [ ! -r ${PM_SUBR_DIR}/portmaster.subr ]; then
 	echo -e "\n===>>> portmaster subroutine not found"
 	exit 1
 fi
+. ${PM_SUBR_DIR}/portmaster.subr
+
 #=============== Initialization of crucial variables [ parent ] ===============
 # PM_PARENT_PID TMPDIR PATH
 # reading configuration files
