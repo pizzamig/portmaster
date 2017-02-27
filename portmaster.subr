@@ -235,13 +235,15 @@ pm_check_port_dbdir () {
 	local dbdir dir
 	[ -d "$port_dbdir" ] || fail "PORT_DBDIR is empty or $port_dbdir doesn't exist"
 
+	echo "===>>> Checking $port_dbdir"
+
 	for dir in ${port_dbdir}/*; do
 		dbdir=${dir#$port_dbdir/}
 
 		if [ -f $dir ]; then
 			continue # files are pkg(8)'s meta and sqlite db
 		fi
-
+		# TODO: verbosity message "Checking $dbdir"
 		if ! pkg info -e $dbdir ; then
 			echo "  ===>>> $dbdir does not seem to be installed"
 			if pm_get_yesno n "\t===>>> Delete $dir?" ; then
