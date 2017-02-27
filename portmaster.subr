@@ -34,6 +34,12 @@ pm_get_yesno() {
 			return $PM_FALSE ;;
 		[Yy])
 			return $PM_TRUE ;;
+		'')
+			case "$default" in
+			[Nn]) return $PM_FALSE ;;
+			[Yy]) return $PM_TRUE ;;
+			esac
+			;;
 		*)
 			echo -e "\t===>>> $answer is not a valid answer"
 		esac
