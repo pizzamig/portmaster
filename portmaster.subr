@@ -171,6 +171,7 @@ pm_clean_distfiles () {
 	local DI_FILES
 	[ -n "$DISTDIR" ] || fail 'DISTDIR is not defined'
 	DI_FILES=$(pm_mktemp_file DISTINFO)
+	echo "===>>> Gathering distinfo list for installed ports"
 	if [ -n "$PM_THOROUGH" ]; then # [ -t ]
 		# get the list of distfiles needed by the whole portstree
 		for _distinfo in $pd/*/*/distinfo
