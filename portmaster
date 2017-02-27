@@ -1035,44 +1035,6 @@ read_distinfos () {
 	pm_unlink ${DI_FILES}-e
 }
 
-read_distinfos_all () {
-	local origin distinfo s f discard
-
-	echo '############' > $DI_FILES		# Make the file > 0 bytes
-	echo "===>>> Gathering distinfo list for all ports"
-	echo '       (This will take several minutes)'
-	echo ''
-
-	for origin in ${pd}/*/*; do
-		case "${origin#$pd/}" in
-		Mk/*|T*|distfiles/*|packages/*|*/[Mm]akefile*|CVS/*|*/CVS|base/*) continue ;; esac
-
-		[ -d "$origin" ] || continue
-
-		if [ -s "${origin}/distinfo" ]; then
-			distinfo="${origin}/distinfo"
-		else
-			pm_cd $origin || continue
-			distinfo=`pm_make -V DISTINFO_FILE`
-			[ -n "$distinfo" ] ||
-				{ echo ''; echo "===>>> No DISTINFO_FILE in $origin"; echo ''; }
-		fi
-
-		if [ -s "$distinfo" ]; then
-			while read s f discard; do
-				case "$s" in
-				SHA256) f=${f#(} ; echo ${f%)} >> $DI_FILES ;;
-				esac
-			done < $distinfo
-		fi
-	done
-
-	# Tell pm_safe_exit that we are done
-	pm_unlink ${DI_FILES}-e
-	sed -i -e 1s/############/%%%%%%%%%%%%/ $DI_FILES
-	pm_unlink ${DI_FILES}-e
-}
-
 ports_by_category () {
 	# Global: num_roots num_trunks num_branches num_leaves num_ports
 	# Global:_roots trunks branches leaves ports
