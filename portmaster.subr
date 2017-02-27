@@ -220,9 +220,30 @@ pm_ports_by_category () {
 	num_ports=$( pkg query -a "%n-%v" | wc -w | tr -d " ")
 }
 
+# it checks if the pkg has to be updated (or downgraded)
+# $1 the pkgname
+# return values:
+# 0 - an upgrade (or downgraded) is available
+# 1 - no new version available
 pm_check_for_updates () {
-	local pkgname origin
-	# TODO: implement it
+	local pkgname origin curVersion newVersion
+	pkgname=$1
+	origin=$(pm_get_moved_origin $1)
+	if [ $? -ne 0 ]; then
+		return 1
+	fi
+	curVersion=$( pkg query "%v" $pkgname )
+	newVersion=$( make -C $pd/$origin -V PKGVERSION)
+	case $(pkg version -t $curVersion $newVersion) in
+	\<) # the port version is newer
+		echo $newVersion
+		;;
+	=) return $PM_FALSE ;; # both version are the same (options can differ)
+	\>) # the port version is older (downgrade?)
+		echo $newVersion
+		;;
+	esac
+	return $PM_TRUE
 }
 #============ High level functions =============
 
@@ -305,24 +326,49 @@ pm_check_port_dbdir () {
 
 # -l and -L ;
 pm_list () {
+	local newVersion
 	echo "===>>> Root ports (No dependencies, not depended on)"
 	for p in $roots; do
 		echo "===>>> $p"
+		if [ -n "LIST_PLUS" ]; then
+			newVersion=$(pm_check_for_updates $p)
+			if [ $? -eq $PM_TRUE ]; then
+				echo -e "\tNew version available: $newVersion"
+			fi
+		fi
 	done
 	echo "===>>> $num_roots root ports"; echo
 	echo "===>>> Trunk ports (No dependencies, are depended on)"
 	for p in $trunks; do
 		echo "===>>> $p"
+		if [ -n "LIST_PLUS" ]; then
+			newVersion=$(pm_check_for_updates $p)
+			if [ $? -eq $PM_TRUE ]; then
+				echo -e "\tNew version available: $newVersion"
+			fi
+		fi
 	done
 	echo "===>>> $num_trunks trunk ports"; echo
 	echo "===>>> Branches ports (Have dependencies, are depended on)"
 	for p in $branches; do
 		echo "===>>> $p"
+		if [ -n "LIST_PLUS" ]; then
+			newVersion=$(pm_check_for_updates $p)
+			if [ $? -eq $PM_TRUE ]; then
+				echo -e "\tNew version available: $newVersion"
+			fi
+		fi
 	done
 	echo "===>>> $num_branches branch ports"; echo
 	echo "===>>> Leaf ports (Have dependencies, not depended on)"
 	for p in $leaves; do
 		echo "===>>> $p"
+		if [ -n "LIST_PLUS" ]; then
+			newVersion=$(pm_check_for_updates $p)
+			if [ $? -eq $PM_TRUE ]; then
+				echo -e "\tNew version available: $newVersion"
+			fi
+		fi
 	done
 	echo "===>>> $num_leaves leaf ports"; echo
 }
