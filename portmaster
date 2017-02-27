@@ -1201,26 +1201,6 @@ fi
 
 if [ -n "$CHECK_PORT_DBDIR" ]; then
 	pm_check_port_dbdir
-
-
-	[ -n "$PM_VERBOSE" ] && { print='-print'; echo '';
-		echo "===>>> Deleting empty directories (if any)"; }
-	pm_find_s $port_dbdir -type d -empty $print -delete
-	pm_v
-
-	for dir in ${port_dbdir}/*; do
-		dbdir=${dir#$port_dbdir/}
-
-		[ -n "$PM_VERBOSE" ] && echo -n "===>>> Checking ${dbdir}: "
-		case "$unique_list" in
-		*:${dbdir}:*)	pm_v "Ok" ;;
-		*)	pm_v
-			echo "	===>>> $dbdir does not seem to be installed"
-			get_answer_yn n "\n\t===>>> Delete ${dir}"
-			case "$?" in 0) pm_rm_s -rf $dir ;; esac
-			echo '' ;;
-		esac
-	done
 	exit 0
 fi
 
