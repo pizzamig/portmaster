@@ -1701,47 +1701,7 @@ delete_all_distfiles () {
 #=============== Begin code relevant only to getopts features ===============
 
 if [ -n "$LIST" -o -n "$LIST_PLUS" ]; then
-	ports_by_category ; pm_v
-	num_updates=0
-
-	echo "===>>> Root ports (No dependencies, not depended on)"
-	for iport in $roots; do
-		echo "===>>> $iport"
-		[ -n "$LIST_PLUS" ] && check_for_updates list $iport
-	done
-	echo "===>>> $num_roots root ports"
-	echo ''
-	echo "===>>> Trunk ports (No dependencies, are depended on)"
-	for iport in $trunks; do
-		echo "===>>> $iport"
-		[ -n "$LIST_PLUS" ] && check_for_updates list $iport
-	done
-	echo "===>>> $num_trunks trunk ports"
-	echo ''
-	echo "===>>> Branch ports (Have dependencies, are depended on)"
-	for iport in $branches; do
-		echo "===>>> $iport"
-		[ -n "$LIST_PLUS" ] && check_for_updates list $iport
-	done
-	echo "===>>> $num_branches branch ports"
-	echo ''
-	echo "===>>> Leaf ports (Have dependencies, not depended on)"
-	for iport in $leaves; do
-		echo "===>>> $iport"
-		[ -n "$LIST_PLUS" ] && check_for_updates list $iport
-	done
-	echo "===>>> $num_leaves leaf ports"
-	echo ''
-	echo "===>>> $num_ports total installed ports"
-
-	if [ "$num_updates" -gt 1 ]; then
-		echo "	===>>> $num_updates have new versions available"
-	elif [ "$num_updates" -eq 1 ]; then
-		echo "	===>>> 1 has a new version available"
-	elif [ -n "$LIST_PLUS" ]; then
-		echo "	===>>> There are no new versions available"
-	fi
-
+	pm_list
 	exit 0
 fi
 

@@ -327,6 +327,7 @@ pm_check_port_dbdir () {
 # -l and -L ;
 pm_list () {
 	local newVersion
+	pm_ports_by_category
 	echo "===>>> Root ports (No dependencies, not depended on)"
 	for p in $roots; do
 		echo "===>>> $p"
