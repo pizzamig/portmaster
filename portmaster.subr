@@ -245,6 +245,27 @@ pm_check_for_updates () {
 	esac
 	return $PM_TRUE
 }
+
+# it creates a backup pkg of the installed pkg
+# if NO_BACKUP is set, it retuns true, but no backup is created
+# reqs: PACKAGES
+# return values:
+# 0 - backup pkg created as expected
+# 1 - an error occured
+pm_backup () {
+	local pkgname bkpdir
+	pkgname=$1
+	[ -n "$NO_BACKUP" ] && return $PM_TRUE
+	bkpdir=${PACKAGES}/portmaster-backup
+
+	if [ ! -d $bkpdir ]; then
+		mkdir -p $bkpdir
+	fi
+	[ ! -d $bkpdir ] && return $PM_FALSE
+	pkg create --out-dir $bkpdir $pkgname
+	return $?
+}
+
 #============ High level functions =============
 
 # --clean-distfiles ; no arguments needed
@@ -324,7 +345,7 @@ pm_check_port_dbdir () {
 	done
 }
 
-# -l and -L ;
+# -l and -L ; LIST_PLUS is -L
 pm_list () {
 	local newVersion
 	pm_ports_by_category
@@ -373,3 +394,49 @@ pm_list () {
 	done
 	echo "===>>> $num_leaves leaf ports"; echo
 }
+
+# INCOMPLETE AND EXPERIMENTAL
+# -e ; the argument has to identify a single package
+pm_expunge () {
+	local pkgname deplist
+	pkgname=$1
+	if ! pkg info -e $pkgname ; then
+		pm_find_glob_pkgs $pkgname
+		case $? in
+		1) fail "No match: $pkgname" ;;
+		2) echo "Too many matches: $pkgname =>"
+			echo "$glob_pkgs"
+			fail "The -e option works with only one port at a time" ;;
+		0) pkgname=$glob_pkgs
+			unset glob_pkgs ;;
+		esac
+	fi
+	deplist=$(pkg query "%rn-%rv" $pkgname)
+	if [ -n "$deplist" ]; then
+		echo "===>>> Warning: ports dependent on $pkgname"
+		echo "$deplist" | tr ' ' '\n'
+		pm_get_yesno n "\n\t===>>> Delete this package as well?"
+		if [ $? -eq $PM_FALSE ]; then
+			exit 1
+		fi
+	fi
+
+	# TODO: backup!
+	# TODO: delete distfiles
+
+	echo "===>>> Running pkg delete on $pkgname"
+	pkg delete -f -y $pkgname
+	for d in $pkgname $deplist ; do
+		[ -d $pdb/$d ] && rm -rf $pdb/$d
+	done
+
+	# TODO: clean stale!
+}
+
+# INCOMPLETE AND EXPERIMENTAL
+# -s ; clean stale 
+pm_clean_stale () {
+	local stale_pkgs
+	stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
+}
+

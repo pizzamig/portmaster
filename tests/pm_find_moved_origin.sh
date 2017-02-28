@@ -1,38 +1,6 @@
 #!/bin/sh
 . ../portmaster.subr
 
-pkg()
-{
-	case $1 in
-	query)
-		shift
-		pkg_query $@
-		return $?
-		;;
-	*)
-		/usr/sbin/pkg $@
-		return $?
-	esac
-}
-
-# pkg subcommand stub
-pkg_query()
-{
-	if [ "$2" == "perl5-5.24.1" ]; then
-		echo lang/perl5.24
-		return 0
-	fi
-	/usr/sbin/pkg query $@
-	return $?
-}
-
-[() {
-	if /bin/test "$1" = "-e" -a "$2" = "$pdb/bash-4.4.12/+IGNOREME" ; then
-		return 0 # true
-	fi
-	/bin/[ "$@"
-} # ];]
-
 # test cases 
 test_pm_find_moved_origin()
 { # port not moved
