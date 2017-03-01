@@ -189,8 +189,9 @@ pm_get_moved_origin() {
 }
 
 # get the distfiles from a pkg name, using the portstree
+# reqs: $pd
 pm_get_distfiles () {
-	local origin
+	local origin distfiles distsubdir
 	origin="$(pm_get_origin $1)"
 	if [ ! -d $pd/$origin ]; then
 		# check the moved ports
@@ -199,9 +200,14 @@ pm_get_distfiles () {
 		0|2) return ;;
 		esac
 	fi
-	if [ -s $pd/$origin/distinfo ]; then
-		fgrep SIZE $pd/$origin/distinfo | sed 's/^SIZE (//g' | sed 's/) =.*$//g'
-	fi
+	distsubdir=$(make -C $pd/$origin -V DIST_SUBDIR)
+	for df in $(make -C $pd/$origin -V ALLFILES) ; do
+		if [ -z "$distsubdir" ]; then
+			echo $df
+		else
+			echo $distsubdir/$df
+		fi
+	done
 }
 
 # get ports lists, per category: roots, trunks, branches, leaves
@@ -415,14 +421,23 @@ pm_expunge () {
 	if [ -n "$deplist" ]; then
 		echo "===>>> Warning: ports dependent on $pkgname"
 		echo "$deplist" | tr ' ' '\n'
-		pm_get_yesno n "\n\t===>>> Delete this package as well?"
+		pm_get_yesno n "\n\t===>>> Delete those packages as well?"
 		if [ $? -eq $PM_FALSE ]; then
 			exit 1
 		fi
 	fi
 
-	# TODO: backup!
-	# TODO: delete distfiles
+	if [ -n "$BACKUP" ]; then
+		if ! pm_backup $pkgname ;
+			pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
+			if [ $? -eq $PM_FALSE ]; then
+				exit 1
+			fi
+		fi
+	fi
+	# delete distfiles won't be performed
+	# slaves ports would remove distfiles used by other ports
+	# it's a situation not detectable
 
 	echo "===>>> Running pkg delete on $pkgname"
 	pkg delete -f -y $pkgname
