@@ -452,11 +452,14 @@ pm_expunge () {
 
 # INCOMPLETE AND EXPERIMENTAL
 # -s ; clean stale 
+# this function removes all pkgs automatically installed as dependency and
+# that are now not used by any other pkg
 pm_clean_stale () {
 	local stale_pkgs no_list temp_list p pk
 	stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
 	no_list=":"
 	temp_list="$stale_pkgs"
+	# temp_list contains all stale files
 	while [ -n "$temp_list" ]; do
 		for p in $temp_list ; do
 			pm_get_yesno n "\n\t===>>> $p is no longer needed; may I delete it?"
@@ -480,8 +483,10 @@ pm_clean_stale () {
 				;;
 			esac
 		done
+		# All stale pks are now deleted, signed as not automatic or added to the no_list
 		stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
 		temp_list=""
+		# Re-alculating the temp_list
 		for pk in $stale_pkgs ; do
 			case $no_list in
 			*:${pk}:*) continue ;;
