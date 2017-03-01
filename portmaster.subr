@@ -437,8 +437,9 @@ pm_expunge () {
 		done
 	fi
 	# delete distfiles won't be performed
-	# slaves ports would remove distfiles used by other ports
-	# it's a situation not detectable
+	# slaves ports would remove distfiles used by master ports
+	# or other sibling ports (qt and php are two examples)
+	# it's a situation not easily detectable
 
 	echo "===>>> Running pkg delete on $pkgname"
 	pkg delete -f -y $pkgname
@@ -446,31 +447,47 @@ pm_expunge () {
 		[ -d $pdb/$d ] && rm -rf $pdb/$d
 	done
 
-	# TODO: clean stale!
+	pm_clean_stale
 }
 
 # INCOMPLETE AND EXPERIMENTAL
 # -s ; clean stale 
-# TODO
 pm_clean_stale () {
-	local stale_pkgs
+	local stale_pkgs no_list temp_list p pk
 	stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
-
-	for pkg in $stale_pkgs ; do
-		pm_get_yesno n "\n\t===>>> $pkg is no longer needed; may I delete it?"
-		case "$?" in
-		$PM_TRUE)
-			if [ -n "$BACKUP" ]; then
-				if ! pm_backup $pkg ; then
-					pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
-					[ $? -eq $PM_FALSE ] && continue
+	no_list=":"
+	temp_list="$stale_pkgs"
+	while [ -n "$temp_list" ]; do
+		for p in $temp_list ; do
+			pm_get_yesno n "\n\t===>>> $p is no longer needed; may I delete it?"
+			case "$?" in
+			$PM_TRUE)
+				if [ -n "$BACKUP" ]; then
+					if ! pm_backup $p ; then
+						pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
+						[ $? -eq $PM_FALSE ] && continue
+					fi
 				fi
-			fi
-			pkg delete -f -y $pkg
-			;;
-		$PM_FALSE) # maintain it
-			;;
-		esac
+				pkg delete -f -y $p
+				;;
+			$PM_FALSE) # maintain it
+				pm_get_yesno y "\n\t===>>> Set $p as not automatic (not stale)?"
+				if [ $? -eq $PM_TRUE ]; then
+					pkg set -A 0 $p
+				else
+					no_list="$no_list:${p}:"
+				fi
+				;;
+			esac
+		done
+		stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
+		temp_list=""
+		for pk in $stale_pkgs ; do
+			case $no_list in
+			*:${pk}:*) continue ;;
+			esac
+			temp_list="${temp_list}$pk "
+		done
 	done
 	exit 0
 }
