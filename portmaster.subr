@@ -427,13 +427,14 @@ pm_expunge () {
 		fi
 	fi
 
+	# TODO: backup should be recursive for reverse dependency as well?
 	if [ -n "$BACKUP" ]; then
-		if ! pm_backup $pkgname ;
-			pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
-			if [ $? -eq $PM_FALSE ]; then
-				exit 1
+		for bkp in $pkgname $deplist ; do
+			if ! pm_backup $bkp ; then
+				pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
+				[ $? -eq $PM_FALSE ] && exit 1
 			fi
-		fi
+		done
 	fi
 	# delete distfiles won't be performed
 	# slaves ports would remove distfiles used by other ports
@@ -450,8 +451,27 @@ pm_expunge () {
 
 # INCOMPLETE AND EXPERIMENTAL
 # -s ; clean stale 
+# TODO
 pm_clean_stale () {
 	local stale_pkgs
 	stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
+
+	for pkg in $stale_pkgs ; do
+		pm_get_yesno n "\n\t===>>> $pkg is no longer needed; may I delete it?"
+		case "$?" in
+		$PM_TRUE)
+			if [ -n "$BACKUP" ]; then
+				if ! pm_backup $pkg ; then
+					pm_get_yesno n "\n\t===>>> Backup failed! Continue?"
+					[ $? -eq $PM_FALSE ] && continue
+				fi
+			fi
+			pkg delete -f -y $pkg
+			;;
+		$PM_FALSE) # maintain it
+			;;
+		esac
+	done
+	exit 0
 }
 
