@@ -373,8 +373,8 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then
 	# pkg detection
 	pkg_found=$PM_FALSE
 	TMPDIR=/dev/null ASSUME_ALWAYS_YES=true \
-	    PACKAGESITE=file:///nonexistent \
-	    pkg info -x 'pkg(-devel)?$' >/dev/null 2>&1 && pkg_found=$PM_TRUE
+		PACKAGESITE=file:///nonexistent \
+		pkg info -x 'pkg(-devel)?$' >/dev/null 2>&1 && pkg_found=$PM_TRUE
 	[ "$pkg_found" = "$PM_FALSE" ] && fail 'The tool pkg is not installed'
 fi
 
@@ -594,12 +594,12 @@ for var in "$@" ; do
 				export PM_NO_TERM_TITLE ;;
 	--help)			usage 0 ;;
 	--version)		pm_version ; exit 0 ;;
-	--clean-distfiles)	CLEAN_DISTFILES=clean_distfiles ;;
+	--clean-distfiles)	PM_CLEAN_DISTFILES=clean_distfiles ;;
 	--clean-distfiles-all)	echo "===>>> The -all form is deprecated, please use -y instead"
-				CLEAN_DISTFILES=clean_distfiles ; PM_YES=yopt ;;
-	--check-depends)	CHECK_DEPENDS=check_depends ;;
-	--check-port-dbdir)	CHECK_PORT_DBDIR=check_port_dbdir ;;
-	--list-origins)		LIST_ORIGINS=list_origins ;;
+				PM_CLEAN_DISTFILES=clean_distfiles ; PM_YES=yopt ;;
+	--check-depends)	PM_CHECK_DEPENDS=check_depends ;;
+	--check-port-dbdir)	PM_CHECK_PORT_DBDIR=check_port_dbdir ;;
+	--list-origins)		PM_LIST_ORIGINS=list_origins ;;
 	--show-work)		SHOW_WORK=show ; PM_THOROUGH=thorough ;;
 	--dry-run)			PM_DRY_RUN=pm_dry_run ; PM_NO=nopt ;;
 	--force-config)		export PM_FORCE_CONFIG=pm_force_config ;;
@@ -610,7 +610,7 @@ for var in "$@" ; do
 	esac
 done
 
-[ -n "$PM_INDEX" -a -n "$CHECK_PORT_DBDIR" ] &&
+[ -n "$PM_INDEX" -a -n "$PM_CHECK_PORT_DBDIR" ] &&
 	fail 'The --index* and --check-port-dbdir options are mutually exclusive'
 
 [ -n "$PM_PACKAGES_LOCAL" -a -z "$LOCAL_PACKAGEDIR" ] &&
@@ -630,7 +630,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 			PM_NO_MAKE_CONFIG=Gopt; ARGS="-G $ARGS"; } ;;
 	H)	HIDE_BUILD=Hopt; ARGS="-H $ARGS" ;;
 	K)	DONT_POST_CLEAN=Kopt; ARGS="-K $ARGS" ;;
-	L)	LIST_PLUS=Lopt ;;
+	L)	PM_LIST_PLUS=Lopt ;;
 	P)	packages_init first ;;
 	R)	RESTART=Ropt ; ARGS="-R $ARGS" ;;
 	a)	PM_UPDATE_ALL=aopt ;;
@@ -641,7 +641,7 @@ while getopts 'BCDFGHKLPRabde:fghilm:nop:r:stvwx:y' COMMAND_LINE_ARGUMENT ; do
 	g)	MAKE_PACKAGE=gopt; ARGS="-g $ARGS" ;;
 	h)	usage 0 ;;
 	i)	INTERACTIVE_UPDATE=iopt; ARGS="-i $ARGS" ;;
-	l)	LIST=lopt ;;
+	l)	PM_LIST=lopt ;;
 	m)	export PM_MAKE_ARGS=$OPTARG	# For 'make checksum'
 		ARGS="-m $PM_MAKE_ARGS $ARGS" ;;
 	n)	PM_NO=nopt; ARGS="-n $ARGS" ;;
@@ -713,7 +713,7 @@ fi
 
 [ -n "$PM_NO_MAKE_CONFIG" -a -n "$PM_FORCE_CONFIG" ] && unset PM_NO_MAKE_CONFIG
 
-if [ -n "$LIST" -o -n "$LIST_PLUS" ]; then
+if [ -n "$PM_LIST" -o -n "$PM_LIST_PLUS" ]; then
 	if [ -n "$FETCH_ONLY" -o -n "$RESTART" -o -n "$PM_UPDATE_ALL" -o \
 	    -n "$EXPUNGE" -o -n "$PM_FORCE" -o -n "$REPLACE_ORIGIN" -o \
 		-n "$PM_URB" -o -n "$CLEAN_STALE" ]; then
@@ -744,7 +744,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then # [ parent ]
 	fi
 
 	if [ -n "$PM_INDEX" ] &&
-	    [ -z "$LIST" -a -z "$LIST_ORIGINS" -a -z "$EXPUNGE" -a -z "$CLEAN_STALE" ]; then
+	    [ -z "$PM_LIST" -a -z "$PM_LIST_ORIGINS" -a -z "$EXPUNGE" -a -z "$CLEAN_STALE" ]; then
 		if [ -z "$INDEXFILE" ]; then
 			ver=`uname -r`
 			INDEXFILE=INDEX-${ver%%\.*}
@@ -824,7 +824,7 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then # [ parent ]
 	if [ -z "$EXPUNGE" -a -z "$CLEAN_STALE" ]; then
 		if [ -n "$pd" ]; then
 			export pd
-		elif [ -z "$LIST" -a -z "$LIST_ORIGINS" ]; then
+		elif [ -z "$PM_LIST" -a -z "$PM_LIST_ORIGINS" ]; then
 			fail 'The value of PORTSDIR cannot be empty'
 		fi
 	else
@@ -839,8 +839,8 @@ if [ "$$" -eq "$PM_PARENT_PID" ]; then # [ parent ]
 		fi
 	fi
 
-	if [ -z "$DISTDIR" -a "$PM_PACKAGES" != only -a -z "$CHECK_DEPENDS" -a \
-	    -z "$CHECK_PORT_DBDIR" -a -z "$LIST_ORIGINS" ]; then
+	if [ -z "$DISTDIR" -a "$PM_PACKAGES" != only -a -z "$PM_CHECK_DEPENDS" -a \
+	    -z "$PM_CHECK_PORT_DBDIR" -a -z "$PM_LIST_ORIGINS" ]; then
 		if ! DISTDIR=`pm_make_b -f/usr/share/mk/bsd.port.mk -V DISTDIR 2>/dev/null`; then
 			if [ ! -d "$PWD" ]; then
 				echo ''
@@ -1014,7 +1014,7 @@ read_distinfos () {
 			# killing other background processes when running
 			# in the background itself.
 			if [ -z "$distinfo" ]; then
-				if [ -z "$CLEAN_DISTFILES" ]; then
+				if [ -z "$PM_CLEAN_DISTFILES" ]; then
 					continue
 				else
 					fail "No DISTINFO_FILE in $origin"
@@ -1103,7 +1103,7 @@ parse_index () {
 #=============== End functions relevant to --features and main ===============
 #=============== Begin code relevant only to --features ===============
 
-if [ -n "$CLEAN_DISTFILES" ]; then
+if [ -n "$PM_CLEAN_DISTFILES" ]; then
 	pm_clean_distfiles
 	delete_empty_dist_subdirs
 	pm_safe_exit
@@ -1194,17 +1194,17 @@ if [ -n "$CLEAN_PACKAGES" ]; then
 	pm_safe_exit
 fi	# [ -n "$CLEAN_PACKAGES" ]
 
-if [ -n "$CHECK_DEPENDS" ]; then
+if [ -n "$PM_CHECK_DEPENDS" ]; then
 	pm_check_depends
 	exit
 fi
 
-if [ -n "$CHECK_PORT_DBDIR" ]; then
+if [ -n "$PM_CHECK_PORT_DBDIR" ]; then
 	pm_check_port_dbdir
 	exit 0
 fi
 
-if [ -n "$LIST_ORIGINS" ]; then
+if [ -n "$PM_LIST_ORIGINS" ]; then
 	pkg query -e '%#r = 0' '%o'
 	exit 0
 fi
@@ -1260,7 +1260,7 @@ check_for_updates () {
 				do_update=upd_idx ;;
 		esac
 
-		[ -z "$do_update" -a -z "$LIST_PLUS" ] && {
+		[ -z "$do_update" -a -z "$PM_LIST_PLUS" ] && {
 			check_force_multi $iport $origin || do_update=upd_fm_idx; }
 
 		if [ -z "$do_update" -a -n "$PM_INDEX_ONLY" -a -n "$PM_THOROUGH" ]; then
@@ -1304,10 +1304,10 @@ check_for_updates () {
 
 	if [ -z "$do_update" -a -n "$port_ver" ]; then
 		if [ "$iport" = "$port_ver" ]; then
-			if [ -n "$LIST_PLUS" -a -z "$PM_INDEX_ONLY" ]; then
+			if [ -n "$PM_LIST_PLUS" -a -z "$PM_INDEX_ONLY" ]; then
 				check_state
 				return 0
-			elif [ -n "$LIST" ]; then
+			elif [ -n "$PM_LIST" ]; then
 				return 0
 			else
 				check_force_multi $iport $origin || do_update=upd_fm_eq
@@ -1332,11 +1332,11 @@ check_for_updates () {
 	fi
 
 	if [ -z "$do_update" ]; then
-		[ -z "$LIST_PLUS" ] && CUR_DEPS="${CUR_DEPS}${iport}:${origin}:"
+		[ -z "$PM_LIST_PLUS" ] && CUR_DEPS="${CUR_DEPS}${iport}:${origin}:"
 		return 0
 	fi
 
-	if [ -n "$LIST_PLUS" ]; then
+	if [ -n "$PM_LIST_PLUS" ]; then
 		if [ -z "$moved_npd" ]; then
 			echo "	===>>> New version available: $port_ver"
 			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
@@ -1700,7 +1700,7 @@ delete_all_distfiles () {
 #=============== End functions for getopts features and main ===============
 #=============== Begin code relevant only to getopts features ===============
 
-if [ -n "$LIST" -o -n "$LIST_PLUS" ]; then
+if [ -n "$PM_LIST" -o -n "$PM_LIST_PLUS" ]; then
 	pm_list
 	exit 0
 fi
