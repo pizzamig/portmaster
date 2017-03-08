@@ -1,0 +1,12 @@
+High level functions that are migrated to a new implemetation
+
+--clean-distfiles [PM_CLEAN_DISTFILES]
+--check-depends [PM_CHECK_DEPENDS]
+--check-port-dbdir [PM_CHECK_PORT_DBDIR]
+-l and -L [PM_LIST and PM_LIST_PLUS]
+NOTE:
+--list-origins [PM_LIST_ORIGINS] is higly semplified with a direct call of pkg
+
+To be migrated
+-E [PM_EXPUNGE]
+-s [PM_CLEAN_STALE]
