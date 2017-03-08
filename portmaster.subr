@@ -72,6 +72,52 @@ pm_globstrip () {
 	echo $in
 }
 
+# initialize global variables | TODO to be adopted
+# it substitute the init_packages_var
+pm_init_global_vars () {
+	if [ -z "$pd" ]; then
+		if [ -z "$PORTSDIR" ]; then
+			pd=$(pm_make_b -f/usr/share/mk/bsd.port.mk -V PORTSDIR 2>/dev/null)
+			[ -z "$pd" ] && [ -d /usr/ports ] && pd=/usr/ports
+			[ -z "$pd" ] && fail "Not able to find any ports directory"
+		else
+			pd=$PORTSDIR
+		fi
+		[ ! -r "${pd}/Mk/bsd.port.mk" ] &&
+			fail "The ports directory ($pd) does not seem to contain a ports tree"
+		export pd
+	fi
+
+	if [ -z "$pdb" ]; then
+		if [ -z "$PKG_DBDIR" ]; then
+			pdb=$(pm_make -f/usr/share/mk/bsd.port.mk -V PKG_DBDIR 2>/dev/null)
+			[ -z "$pdb" ] && [ -d /var/db/pkg ] && pdb=/var/db/pkg
+			[ -z "$pdb" ] && fail 'The value of PKG_DBDIR cannot be empty'
+		else
+			pdb=$PKG_DBDIR
+		fi
+		[ ! -d "$pdb" ] && fail "The pkg dbdir $pdb does not seems correct"
+		export pdb
+	fi
+
+	if [ -z "$port_dbdir" ]; then
+		port_dbdir=$(pm_make_b -f/usr/share/mk/bsd.port.mk -V PORT_DBDIR 2>/dev/null)
+		[ -z "$port_dbdir" ] && [ -d /var/db/ports ] && port_dbdir=/var/db/ports
+		[ -z "$port_dbdir" ] && fail 'The value of PORT_DBDIR cannot be empty'
+		[ ! -d "$port_dbdir" ] && fail "The port dbdir $port_dbdir is not a directory"
+		export port_dbdir
+	fi
+
+	# TODO: it should be performed if the PACKAGES variable is needed
+	if [ -z "$PACKAGES" ]; then
+		PACKAGES=$(pm_make -f/usr/share/mk/bsd.port.mk -V PACKAGES 2>/dev/null)
+		[ -z "$PACKAGES" ] && [ -d $pd/packages ] && PACKAGES=$pd/packages
+		[ ! -w $PACKAGES ] &&
+			fail 'PACKAGES cannot be empty and the directory must be writable'
+		export PACKAGES
+	fi
+}
+
 # Takes a pkg pattern as input( bash, perl, ...) ; return values
 # 0 - Matched one and only one package
 # 1 - No match
