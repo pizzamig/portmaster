@@ -5,11 +5,11 @@ pkg is now mandatory. No pkg_* support anymore.
 	-l and -L doesn't perform any changes, so it's always a dry-run
 
 Removing the -PP option. Only --package-only will stay.
-	Currently, all packages options are not working
+	Currently, all packages options are still not supported
 
 Removing support and warning to undocumented path of portmaster.rc
 	Only /usr/local/etc/portmaster.rc and $HOME/.portmasterrc will be supported
 
 [ Deprecation ]
 Deprecating  bsdpan-* packages support
-	bsdpan pkgs should be migrated to p5
+	bsdpan pkgs should be migrated to p5 long time ago
