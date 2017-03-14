@@ -500,6 +500,7 @@ pm_expunge () {
 # -s ; clean stale 
 # this function removes all pkgs automatically installed as dependency and
 # that are now not used by any other pkg
+# TODO: pkg autoremove should perform the same task, yet with no backup feature
 pm_clean_stale () {
 	local stale_pkgs no_list temp_list p pk
 	stale_pkgs=$(pkg query -e '%a = 1 && %?r = 0' '%n-%v')
