@@ -56,12 +56,27 @@ pm_get_yesno() {
 	done
 }
 
+### temp_file framework ###
+# create a temporary file
+# $1 a string that identifies the scope
 pm_mktemp_file() {
 	local _temp
 	_temp=$(/usr/bin/mktemp -t pm-${PM_PARENT_PID}-$1 2>&1) ||
 		fail "mktemp for $1 failed: \n\t${_temp#mktemp: }"
 	echo $_temp
-	TEMP_FILE_LIST="${TEMP_FILE_LIST}${_temp} "
+	PM_TEMP_FILE_LIST="${PM_TEMP_FILE_LIST}${_temp} "
+}
+
+# temporary files cleaner
+# this function should be invoked by pm_trap_exit
+pm_mktemp_cleanup() {
+	local _f
+	if [ -z "${PM_TEMP_FILE_LIST}" ]; then
+		return # nothing to do!
+	fi
+	for _f in ${PM_TEMP_FILE_LIST} ; do
+		rm -f $_f
+	done
 }
 
 # removing trailing glob chars
