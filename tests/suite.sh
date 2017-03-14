@@ -1,5 +1,7 @@
 #!/bin/sh
 
 for t in pm_*.sh ; do
-	./$t
+	if ! ./$t ; then
+		exit $?
+	fi
 done
