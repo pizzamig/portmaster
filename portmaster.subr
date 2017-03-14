@@ -112,10 +112,21 @@ pm_init_global_vars () {
 	if [ -z "$PACKAGES" ]; then
 		PACKAGES=$(pm_make -f/usr/share/mk/bsd.port.mk -V PACKAGES 2>/dev/null)
 		[ -z "$PACKAGES" ] && [ -d $pd/packages ] && PACKAGES=$pd/packages
+		# we should relax this check
 		[ ! -w $PACKAGES ] &&
 			fail 'PACKAGES cannot be empty and the directory must be writable'
 		export PACKAGES
 	fi
+
+	if [ -z "$LOCALBASE" ]; then
+		LOCALBASE=$(pm_make -f/usr/share/mk/bsd.port.mk -V LOCALBASE 2>/dev/null)
+		if [ -z "$LOCALBASE" ]; then
+			echo "===>>> Unable to determine the value of LOCALBASE"
+			fail 'the value of LOCALBASE cannot be empty'
+		fi
+	fi
+	LOCALBASE_COMPAT=${LOCALBASE}/lib/compat/pkg
+	export LOCALBASE_COMPAT
 }
 
 # Takes a pkg pattern as input( bash, perl, ...) ; return values
