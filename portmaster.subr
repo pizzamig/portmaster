@@ -344,6 +344,23 @@ pm_backup () {
 	return $?
 }
 
+# it get the sanity state of the current port
+# the state can be FORBIDDEN BORKEN IGNORE
+# the state is empty if the port is OK
+pm_get_port_sanity_state () {
+	local _state
+	if grep -ql '^(FORBIDDEN|BROKEN|IGNORE)' Makefile; then
+		for s in FORBIDDEN BROKEN IGNORE ; do
+			_state=$(pm_make -V $s)
+			if [ -n $_state ]; then
+				echo $state
+				echo "===>>> This port is marked $_state"
+			fi
+		done
+	fi
+	return $PM_TRUE
+}
+
 #============ High level functions =============
 
 # --clean-distfiles ; no arguments needed
