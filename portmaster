@@ -7,6 +7,7 @@ trap pm_trap_exit INT
 
 umask 022
 
+: ${PM_VERSION:="3.99.0"}
 : ${PM_SUBR_DIR:="."}
 
 if [ ! -r ${PM_SUBR_DIR}/portmaster.subr ]; then
@@ -45,7 +46,7 @@ fi
 
 #=============== Common functions definition ===============
 
-pm_version () { echo '' ; echo "===>>> Version 3.18.0" ; }
+pm_version () { echo '' ; echo "===>>> Version ${PM_VERSION}" ; }
 
 fail () {
 	echo -e "\n===>>> $*" ; echo "===>>> Aborting update"
