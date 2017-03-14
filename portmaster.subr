@@ -430,7 +430,7 @@ pm_list () {
 	echo "===>>> Root ports (No dependencies, not depended on)"
 	for p in $roots; do
 		echo "===>>> $p"
-		if [ -n "LIST_PLUS" ]; then
+		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				echo -e "\tNew version available: $newVersion"
@@ -441,7 +441,7 @@ pm_list () {
 	echo "===>>> Trunk ports (No dependencies, are depended on)"
 	for p in $trunks; do
 		echo "===>>> $p"
-		if [ -n "LIST_PLUS" ]; then
+		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				echo -e "\tNew version available: $newVersion"
@@ -452,7 +452,7 @@ pm_list () {
 	echo "===>>> Branches ports (Have dependencies, are depended on)"
 	for p in $branches; do
 		echo "===>>> $p"
-		if [ -n "LIST_PLUS" ]; then
+		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				echo -e "\tNew version available: $newVersion"
@@ -463,7 +463,7 @@ pm_list () {
 	echo "===>>> Leaf ports (Have dependencies, not depended on)"
 	for p in $leaves; do
 		echo "===>>> $p"
-		if [ -n "LIST_PLUS" ]; then
+		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				echo -e "\tNew version available: $newVersion"
