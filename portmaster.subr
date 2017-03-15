@@ -600,3 +600,29 @@ pm_clean_stale () {
 	exit 0
 }
 
+# -a : update all
+pm_update_all () {
+	local origin
+	# ?? read_distinfo ??
+	# init_term_printf All
+	echo "===>>> Starting check of installed ports for available updates"
+	# initial checks
+	for pkgname in $(pkg query "%n-%v") ; do
+		origin=$(pm_get_moved_origin $pkgname)
+		case $? in
+		0) ;;
+		2)
+			echo "===>>> Skipping $pkgname"
+			continue
+			;;
+		*)
+			fail "===>>> Error looking for $pkgname origin"
+			;;
+		esac
+		#  [ -n "$PM_BUILD_ONLY_LIST" ] && run_dl_g="$run_dl_g ${pd}/${origin} "
+
+		# check_exclude $pkgname
+		PM_DEPTH="$pkgname "
+		check
+	done
+}
