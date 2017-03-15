@@ -1261,7 +1261,7 @@ check_for_updates () {
 				do_update=upd_idx ;;
 		esac
 
-		[ -z "$do_update" -a -z "$PM_LIST_PLUS" ] && {
+		[ -z "$do_update" ] && {
 			check_force_multi $iport $origin || do_update=upd_fm_idx; }
 
 		if [ -z "$do_update" -a -n "$PM_INDEX_ONLY" -a -n "$PM_THOROUGH" ]; then
@@ -1305,15 +1305,8 @@ check_for_updates () {
 
 	if [ -z "$do_update" -a -n "$port_ver" ]; then
 		if [ "$iport" = "$port_ver" ]; then
-			if [ -n "$PM_LIST_PLUS" -a -z "$PM_INDEX_ONLY" ]; then
-				check_state
-				return 0
-			elif [ -n "$PM_LIST" ]; then
-				return 0
-			else
-				check_force_multi $iport $origin || do_update=upd_fm_eq
-				unset port_ver
-			fi
+			check_force_multi $iport $origin || do_update=upd_fm_eq
+			unset port_ver
 		else
 			local pkg_version
 			pkg_version="pkg version"
@@ -1333,23 +1326,11 @@ check_for_updates () {
 	fi
 
 	if [ -z "$do_update" ]; then
-		[ -z "$PM_LIST_PLUS" ] && CUR_DEPS="${CUR_DEPS}${iport}:${origin}:"
+		CUR_DEPS="${CUR_DEPS}${iport}:${origin}:"
 		return 0
 	fi
 
-	if [ -n "$PM_LIST_PLUS" ]; then
-		if [ -z "$moved_npd" ]; then
-			echo "	===>>> New version available: $port_ver"
-			if [ -e "$pdb/$iport/+IGNOREME" ] && ( pkg info -e $iport ); then
-				echo "	===>>> +IGNOREME file is present for $1"
-			fi
-			pm_cd_pd $origin && check_state
-			num_updates=$(( $num_updates + 1 ))
-		else
-			unset moved_npd
-		fi
-		return 0
-	elif [ -n "$PM_UPDATE_IF_NEWER" ]; then
+	if [ -n "$PM_UPDATE_IF_NEWER" ]; then
 		return 1
 	fi
 
