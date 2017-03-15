@@ -305,12 +305,12 @@ pm_ports_by_category () {
 # it get the sanity state of the current port
 # the state can be FORBIDDEN BORKEN IGNORE
 # the state is empty if the port is OK
-# $1 is a valid origin
+# $1 empty or a valid origin to cd into
 pm_get_port_sanity_state () {
 	local _state _cwd _origin
 	_cwd=$(pwd)
 	_origin=$1
-	cd $pd/$_origin
+	[ -n "$_origin" ] && cd $pd/$_origin
 	if egrep -ql '^(FORBIDDEN|BROKEN|IGNORE)' Makefile; then
 		for s in FORBIDDEN BROKEN IGNORE ; do
 			_state=$(pm_wrap_make -V $s)
@@ -320,7 +320,7 @@ pm_get_port_sanity_state () {
 			fi
 		done
 	fi
-	cd $pwd
+	[ -n "$_origin" ] && cd $_cwd
 }
 
 # it checks if the pkg has to be updated (or downgraded)
