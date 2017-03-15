@@ -25,6 +25,13 @@ test_pm_get_port_sanity_state_3()
 	assertEquals "IGNORE" "$state"
 }
 
+test_pm_get_port_sanity_state_4()
+{ # sane port
+	local state
+	state=$(pm_get_port_sanity_state devel/ignore)
+	assertTrue "[-z "$state" ]"
+}
+
 setUp()
 {
 	pd=./faketree
