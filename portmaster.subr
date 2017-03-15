@@ -25,6 +25,10 @@ pm_has_su_privileges() {
 	fi
 }
 
+pm_wrap_make() {
+	( make $* )
+}
+
 # ask the user to type y or n and return properly
 # if the user type y or PM_YES, PM_TRUE is returned
 # if the user type n or PM_NO, PM_FALSE is returned
@@ -298,17 +302,43 @@ pm_ports_by_category () {
 	num_ports=$( pkg query -a "%n-%v" | wc -w | tr -d " ")
 }
 
+# it get the sanity state of the current port
+# the state can be FORBIDDEN BORKEN IGNORE
+# the state is empty if the port is OK
+# $1 is a valid origin
+pm_get_port_sanity_state () {
+	local _state _cwd _origin
+	_cwd=$(pwd)
+	_origin=$1
+	cd $pd/$_origin
+	if egrep -ql '^(FORBIDDEN|BROKEN|IGNORE)' Makefile; then
+		for s in FORBIDDEN BROKEN IGNORE ; do
+			_state=$(pm_wrap_make -V $s)
+			if [ -n "$_state" ]; then
+				echo "$s"
+				return
+			fi
+		done
+	fi
+	cd $pwd
+}
+
 # it checks if the pkg has to be updated (or downgraded)
 # $1 the pkgname
 # return values:
 # 0 - an upgrade (or downgraded) is available
 # 1 - no new version available
 pm_check_for_updates () {
-	local pkgname origin curVersion newVersion
+	local pkgname origin curVersion newVersion state
 	pkgname=$1
 	origin=$(pm_get_moved_origin $1)
 	if [ $? -ne 0 ]; then
-		return 1
+		return $PM_FALSE
+	fi
+	state=$(pm_get_port_sanity_state)
+	if [ -n "$state" ]; then
+		echo "===>>> This port is marked $state"
+		return $PM_FALSE
 	fi
 	curVersion=$( pkg query "%v" $pkgname )
 	newVersion=$( make -C $pd/$origin -V PKGVERSION)
