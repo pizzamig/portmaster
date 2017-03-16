@@ -323,6 +323,21 @@ pm_get_port_sanity_state () {
 	[ -n "$_origin" ] && cd $_cwd
 }
 
+pm_check_for_exclude () {
+	local _pattern
+	[ -z "$PM_EXCL" ] && return $PM_TRUE
+	for _pattern in $PM_EXCL ; do
+		case "$1" in
+		*${_pattern}*)
+			# TODO: if verbose
+			echo "===>>> Skipping $1 - excluded by ${_pattern}"
+			return $PM_FALSE
+			;;
+		esac
+	done
+	return $PM_TRUE
+}
+
 # it checks if the pkg has to be updated (or downgraded)
 # $1 the pkgname
 # return values:
