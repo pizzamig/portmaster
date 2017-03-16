@@ -29,6 +29,38 @@ pm_wrap_make() {
 	( make $* )
 }
 
+# flags:
+# ARR - prepone an arrow '===>>> '
+# VERB - print iff VEROBSE is active
+# DIND - double indent AKA '\t\t'
+pm_print() {
+	local _prefix _vonly
+	_vonly=$PM_FALSE
+	while true; do
+		case "$1" in
+		ARR) _prefix='===>>> '
+			shift ;;
+		VERB) _vonly=$PM_TRUE
+			shift ;;
+		DIND) _prefix='\t\t'
+			shift ;;
+		*) break ;;
+		esac
+	done
+	if [ -z "$PM_VERBOSE" -a $_vonly -eq $PM_TRUE ]; then
+		return
+	fi
+	builtin echo -e ${_prefix}$*
+}
+
+# convinient wrapper
+pm_print_arr() {
+	pm_print ARR $*
+}
+pm_print_verb() {
+	pm_print VERB $*
+}
+
 # ask the user to type y or n and return properly
 # if the user type y or PM_YES, PM_TRUE is returned
 # if the user type n or PM_NO, PM_FALSE is returned
@@ -140,7 +172,7 @@ pm_init_global_vars () {
 	if [ -z "$LOCALBASE" ]; then
 		LOCALBASE=$(pm_make -f/usr/share/mk/bsd.port.mk -V LOCALBASE 2>/dev/null)
 		if [ -z "$LOCALBASE" ]; then
-			echo "===>>> Unable to determine the value of LOCALBASE"
+			pm_print_arr "Unable to determine the value of LOCALBASE"
 			fail 'the value of LOCALBASE cannot be empty'
 		fi
 	fi
@@ -174,7 +206,7 @@ pm_find_glob_pkgs () {
 # 3 - bsdpan package (a relics)
 pm_get_origin () {
 	if [  -e "$pdb/$1/+IGNOREME" ]; then
-		echo "  ===>>> $pdb/$1/+IGNOREME exists" >&2
+		pm_print_arr "$pdb/$1/+IGNOREME exists" >&2
 		return 2
 	fi
 	pkg query '%o' $1 2>/dev/null && return 0
@@ -335,7 +367,7 @@ pm_check_for_exclude () {
 		case "$1" in
 		*${_pattern}*)
 			# TODO: if verbose
-			echo "===>>> Skipping $1 - excluded by ${_pattern}"
+			pm_print_arr "Skipping $1 - excluded by ${_pattern}"
 			return $PM_FALSE
 			;;
 		esac
@@ -357,7 +389,7 @@ pm_check_for_updates () {
 	fi
 	state=$(pm_get_port_sanity_state)
 	if [ -n "$state" ]; then
-		echo "===>>> This port is marked $state"
+		pm_print_err "This port is marked $state"
 		return $PM_FALSE
 	fi
 	curVersion=$( pkg query "%v" $pkgname )
@@ -403,7 +435,7 @@ pm_clean_distfiles () {
 	local DI_FILES
 	[ -n "$DISTDIR" ] || fail 'DISTDIR is not defined'
 	DI_FILES=$(pm_mktemp_file DISTINFO)
-	echo "===>>> Gathering distinfo list for installed ports"
+	pm_print_arr "Gathering distinfo list for installed ports"
 	if [ -n "$PM_THOROUGH" ]; then # [ -t ]
 		# get the list of distfiles needed by the whole portstree
 		for _distinfo in $pd/*/*/distinfo
@@ -418,14 +450,14 @@ pm_clean_distfiles () {
 	fi
 	# get the list of distfiles stored in the system and
 	# remove distfiles not related to installed pkgs
-	echo "===>>> Checking for stale distfiles" ; echo ''
+	pm_print_arr "Checking for stale distfiles\n"
 	for _dif in $(find -s $DISTDIR -type f) ; do
 		__dif=${_dif#$DISTDIR}
 		if ! grep -sql ^$__dif $DI_FILES; then
 			pm_get_yesno n "\t===>>> Delete stale file: $__dif"
 			case "$?" in
 			$PM_TRUE)
-				echo -e "\tDeleting $__dif"
+				pm_print DIND "Deleting $__dif"
 				/bin/unlink $__dif ;;
 			*)
 				continue ;;
@@ -440,10 +472,10 @@ pm_clean_distfiles () {
 # reqs: superuser privileges
 pm_check_depends () {
 	local origin
-	# TODO: pkg check needs superuser privileges O–O
+	# TODO: pkg check needs superuser privileges
 	pkg check -dnq | while read pkgname missinglib; do
 		origin=$(pkg query "%o" $pkgname)
-		echo "$pkgname ($origin) requires missing $missinglib"
+		pm_print "$pkgname ($origin) requires missing $missinglib"
 	done
 	# TODO: a clean exit
 }
@@ -455,7 +487,7 @@ pm_check_port_dbdir () {
 	local dbdir dir
 	[ -d "$port_dbdir" ] || fail "PORT_DBDIR is empty or $port_dbdir doesn't exist"
 
-	echo "===>>> Checking $port_dbdir"
+	pm_print_arr "Checking $port_dbdir"
 
 	for dir in ${port_dbdir}/*; do
 		dbdir=${dir#$port_dbdir/}
@@ -465,7 +497,7 @@ pm_check_port_dbdir () {
 		fi
 		# TODO: verbosity message "Checking $dbdir"
 		if ! pkg info -e $dbdir ; then
-			echo "  ===>>> $dbdir does not seem to be installed"
+			pm_print_arr "$dbdir does not seem to be installed"
 			if pm_get_yesno n "\t===>>> Delete $dir?" ; then
 				pm_rm -rf $dir
 			fi
@@ -477,50 +509,50 @@ pm_check_port_dbdir () {
 pm_list () {
 	local newVersion
 	pm_ports_by_category
-	echo "===>>> Root ports (No dependencies, not depended on)"
+	pm_print_arr "Root ports (No dependencies, not depended on)"
 	for p in $roots; do
-		echo "===>>> $p"
+		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
-				echo -e "\tNew version available: $newVersion"
+				pm_print DIND "New version available: $newVersion"
 			fi
 		fi
 	done
-	echo "===>>> $num_roots root ports"; echo
-	echo "===>>> Trunk ports (No dependencies, are depended on)"
+	pm_print_arr "$num_roots root ports\n"
+	pm_print_arr "Trunk ports (No dependencies, are depended on)"
 	for p in $trunks; do
-		echo "===>>> $p"
+		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
-				echo -e "\tNew version available: $newVersion"
+				pm_print DIND "New version available: $newVersion"
 			fi
 		fi
 	done
-	echo "===>>> $num_trunks trunk ports"; echo
-	echo "===>>> Branches ports (Have dependencies, are depended on)"
+	pm_print_arr "$num_trunks trunk ports\n"
+	pm_print_arr "Branches ports (Have dependencies, are depended on)"
 	for p in $branches; do
-		echo "===>>> $p"
+		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
-				echo -e "\tNew version available: $newVersion"
+				pm_print DIND "New version available: $newVersion"
 			fi
 		fi
 	done
-	echo "===>>> $num_branches branch ports"; echo
-	echo "===>>> Leaf ports (Have dependencies, not depended on)"
+	pm_print_arr "$num_branches branch ports\n"
+	pm_print_arr "Leaf ports (Have dependencies, not depended on)"
 	for p in $leaves; do
-		echo "===>>> $p"
+		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
 			newVersion=$(pm_check_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
-				echo -e "\tNew version available: $newVersion"
+				pm_print DIND "New version available: $newVersion"
 			fi
 		fi
 	done
-	echo "===>>> $num_leaves leaf ports"; echo
+	pm_print_arr "$num_leaves leaf ports\n"
 }
 
 # INCOMPLETE AND EXPERIMENTAL
@@ -532,8 +564,8 @@ pm_expunge () {
 		pm_find_glob_pkgs $pkgname
 		case $? in
 		1) fail "No match: $pkgname" ;;
-		2) echo "Too many matches: $pkgname =>"
-			echo "$glob_pkgs"
+		2) pm_print_arr "Too many matches: $pkgname =>"
+			pm_print "$glob_pkgs"
 			fail "The -e option works with only one port at a time" ;;
 		0) pkgname=$glob_pkgs
 			unset glob_pkgs ;;
@@ -541,7 +573,7 @@ pm_expunge () {
 	fi
 	deplist=$(pkg query "%rn-%rv" $pkgname)
 	if [ -n "$deplist" ]; then
-		echo "===>>> Warning: ports dependent on $pkgname"
+		pm_print_arr "Warning: ports dependent on $pkgname"
 		echo "$deplist" | tr ' ' '\n'
 		pm_get_yesno n "\n\t===>>> Delete those packages as well?"
 		if [ $? -eq $PM_FALSE ]; then
@@ -563,7 +595,7 @@ pm_expunge () {
 	# or other sibling ports (qt and php are two examples)
 	# it's a situation not easily detectable
 
-	echo "===>>> Running pkg delete on $pkgname"
+	pm_print_arr "Running pkg delete on $pkgname"
 	pkg delete -f -y $pkgname
 	for d in $pkgname $deplist ; do
 		[ -d $pdb/$d ] && rm -rf $pdb/$d
