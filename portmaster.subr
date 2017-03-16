@@ -323,6 +323,11 @@ pm_get_port_sanity_state () {
 	[ -n "$_origin" ] && cd $_cwd
 }
 
+# it checks if the argument (pkg or origin) match the exclude list
+# the exclude list is stored in PM_EXCL
+# return values:
+# PM_TRUE if the argument is OK
+# PM_FALSE if the argument has to be excluded
 pm_check_for_exclude () {
 	local _pattern
 	[ -z "$PM_EXCL" ] && return $PM_TRUE
