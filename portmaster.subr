@@ -53,6 +53,14 @@ pm_print() {
 	builtin echo -e ${_prefix}$*
 }
 
+# convinient wrapper
+pm_print_arr() {
+	pm_print ARR $*
+}
+pm_print_verb() {
+	pm_print VERB $*
+}
+
 # ask the user to type y or n and return properly
 # if the user type y or PM_YES, PM_TRUE is returned
 # if the user type n or PM_NO, PM_FALSE is returned

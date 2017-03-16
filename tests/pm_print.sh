@@ -46,6 +46,51 @@ test_pm_print_6()
 	assertEquals "" "$outstr"
 }
 
+test_pm_print_arr()
+{
+	local outstr arg
+	arg="devel/gdb"
+	outstr=$(pm_print_arr "Skipping $arg")
+	assertEquals "===>>> Skipping devel/gdb" "$outstr"
+}
+
+test_pm_print_arr_2()
+{
+	local outstr arg
+	arg="devel/gdb"
+	outstr=$(pm_print_arr VERB "Skipping $arg")
+	assertEquals "" "$outstr"
+	PM_VERBOSE=vopt
+	outstr=$(pm_print_arr VERB "Skipping $arg")
+	assertEquals "===>>> Skipping devel/gdb" "$outstr"
+}
+
+test_pm_print_verb()
+{
+	local outstr arg
+	PM_VERBOSE=vopt
+	arg="devel/gdb"
+	outstr=$(pm_print_verb "Skipping $arg")
+	assertEquals "Skipping devel/gdb" "$outstr"
+}
+
+test_pm_print_verb_2()
+{
+	local outstr arg
+	PM_VERBOSE=vopt
+	arg="devel/gdb"
+	outstr=$(pm_print_verb DIND "Skipping $arg")
+	assertEquals "		Skipping devel/gdb" "$outstr"
+}
+
+test_pm_print_verb_3()
+{
+	local outstr arg
+	arg="devel/gdb"
+	outstr=$(pm_print_verb DIND "Skipping $arg")
+	assertEquals "" "$outstr"
+}
+
 setUp()
 {
 	unset PM_VERBOSE
