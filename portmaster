@@ -1317,7 +1317,7 @@ check_for_updates () {
 		return 1
 	fi
 
-	# No need for check_exclude here because it is already
+	# No need for check_for_exclude here because it is already
 	# run in the places that call check_for_updates().
 	check_interactive $iport $port_ver || return 0
 	update_port $iport $port_ver || return 1
@@ -1786,26 +1786,6 @@ check_interactive () {
 	fi
 }
 
-check_exclude () {
-	[ -n "$PM_EXCL" ] || return 0
-
-	local pat
-
-	for pat in $PM_EXCL; do
-		case "$1" in
-		*${pat}*)
-			if [ -n "$PM_VERBOSE" ]; then
-				echo "===>>> Skipping $1"
-				echo "       because it matches the pattern: *${pat}*"
-				echo ''
-			fi
-			return 1 ;;
-		esac
-	done
-
-	return 0
-}
-
 check_fetch_only () {
 	[ -n "$FETCH_ONLY" ] || return 0
 	[ -z "$1" -a -n "$PM_PACKAGES" ] && return 0
@@ -2130,7 +2110,7 @@ dependency_check () {
 		# In case d_port changed above
 		origin="${d_port#$pd/}" ; iport=`iport_from_origin ${origin}`
 
-		check_exclude ${iport:-$origin} || continue
+		pm_check_for_exclude ${iport:-$origin} || continue
 
 		if [ -n "$PM_FORCE" -a -n "$iport" ]; then
 			if ! check_restart_and_udf $iport; then
@@ -2313,7 +2293,7 @@ urb_update () {
 		case "$PM_URB_DONE" in
 		*:${req_by}:*) already_done $req_by ; continue ;; esac
 
-		check_exclude $req_by || continue
+		pm_check_for_exclude $req_by || continue
 		check_interactive $req_by || continue
 
 		# Shortcut, since check_for will force it
@@ -2366,7 +2346,7 @@ multiport () {
 
 	numports=0
 	for port in $worklist_temp; do
-		check_exclude $port || continue
+		pm_check_for_exclude $port || continue
 		check_interactive $port || continue
 
 		if [ -n "$PM_UPDATE_IF_NEWER" ]; then
@@ -2626,7 +2606,7 @@ all_first_pass () {
 
 		[ -n "$PM_BUILD_ONLY_LIST" ] && run_dl_g="$run_dl_g ${pd}/${origin} "
 
-		check_exclude $iport || continue
+		pm_check_for_exclude $iport || continue
 
 		PM_DEPTH="$iport "
 		check_for_updates $iport $origin || fail 'Update failed'
