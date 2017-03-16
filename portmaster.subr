@@ -29,6 +29,30 @@ pm_wrap_make() {
 	( make $* )
 }
 
+# flags:
+# ARR - prepone an arrow '===>>> '
+# VERB - print iff VEROBSE is active
+# DIND - double indent AKA '\t\t'
+pm_print() {
+	local _prefix _vonly
+	_vonly=$PM_FALSE
+	while true; do
+		case "$1" in
+		ARR) _prefix='===>>> '
+			shift ;;
+		VERB) _vonly=$PM_TRUE
+			shift ;;
+		DIND) _prefix='\t\t'
+			shift ;;
+		*) break ;;
+		esac
+	done
+	if [ -z $PM_VERBOSITY -o $_vonly -eq $PM_TRUE ]; then
+		return
+	fi
+	echo -e ${_prefix}$*
+}
+
 # ask the user to type y or n and return properly
 # if the user type y or PM_YES, PM_TRUE is returned
 # if the user type n or PM_NO, PM_FALSE is returned
