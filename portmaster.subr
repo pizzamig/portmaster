@@ -47,10 +47,10 @@ pm_print() {
 		*) break ;;
 		esac
 	done
-	if [ -z $PM_VERBOSITY -o $_vonly -eq $PM_TRUE ]; then
+	if [ -z "$PM_VERBOSITY" -a $_vonly -eq $PM_TRUE ]; then
 		return
 	fi
-	echo -e ${_prefix}$*
+	builtin echo -e ${_prefix}$*
 }
 
 # ask the user to type y or n and return properly
