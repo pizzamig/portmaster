@@ -47,7 +47,7 @@ pm_print() {
 		*) break ;;
 		esac
 	done
-	if [ -z "$PM_VERBOSITY" -a $_vonly -eq $PM_TRUE ]; then
+	if [ -z "$PM_VERBOSE" -a $_vonly -eq $PM_TRUE ]; then
 		return
 	fi
 	builtin echo -e ${_prefix}$*
