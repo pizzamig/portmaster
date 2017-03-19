@@ -53,12 +53,26 @@ pm_print() {
 	builtin echo -e ${_prefix}$*
 }
 
-# convinient wrapper
+# convenient wrapper
 pm_print_arr() {
 	pm_print ARR $*
 }
 pm_print_verb() {
 	pm_print VERB $*
+}
+
+# flags:
+# PM_TERM_TITLE_INIT : initialize the title using the argument $1
+pm_term_title_print() {
+	[ -n "$PM_NO_TERM_TITLE" ] && return
+	case "$TERM" in cons*) return ;; esac
+
+	if [ "$1" = "PM_TERM_TITLE_INIT" ]; then
+		shift
+		PM_TERM_PARENT_PORT=$1
+		shift
+	fi
+	printf "\033]0;portmaster: ${PM_TERM_PARENT_PORT}${1}\077"
 }
 
 # ask the user to type y or n and return properly
