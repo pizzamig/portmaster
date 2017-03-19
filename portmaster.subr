@@ -670,7 +670,7 @@ pm_clean_stale () {
 pm_update_all () {
 	local origin
 	# ?? read_distinfo ??
-	# init_term_printf All
+	pm_term_title_print PM_TERM_TITLE_INIT AllAll
 	echo "===>>> Starting check of installed ports for available updates"
 	# initial checks
 	for pkgname in $(pkg query "%n-%v") ; do
