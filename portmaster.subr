@@ -61,6 +61,8 @@ pm_print_verb() {
 	pm_print VERB $*
 }
 
+# flags:
+# PM_TERM_TITLE_INIT : initialize the title using the argument $1
 pm_term_title_print() {
 	[ -n "$PM_NO_TERM_TITLE" ] && return
 	case "$TERM" in cons*) return ;; esac
@@ -68,6 +70,7 @@ pm_term_title_print() {
 	if [ "$1" = "PM_TERM_TITLE_INIT" ]; then
 		shift
 		PM_TERM_PARENT_PORT=$1
+		shift
 	fi
 	printf "\033]0;portmaster: ${PM_TERM_PARENT_PORT}${1}\077"
 }
