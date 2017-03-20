@@ -7,6 +7,34 @@
 PM_TRUE=0
 PM_FALSE=1
 
+########### PMLIST functions ###########
+
+PMLIST_FS=':'
+PMLIST_NAME=pmlist_list
+pmlist_list="$PMLIST_FS"
+pmlist_is_present() {
+	local _list
+	[ -z "$1" ] && return $PM_TRUE
+	_list=$(eval echo \$$PMLIST_NAME)
+	[ -z "$_list" ] && return $PM_FALSE
+	case $_list in
+		*:$1:*|$1:*|*:${1}|$1) return $PM_TRUE ;;
+	esac
+	return $PM_FALSE
+}
+
+pmlist_merge() {
+	local _merge _e
+	[ -z "$1" ] && return
+	_merge=
+	for _e in $(echo $1 | tr ':' ' ') ; do
+		if ! pmlist_is_present $_e ; then
+			_merge=${_merge}':'$_e
+		fi
+	done
+	eval $PMLIST_NAME=\$$PMLIST_NAME$_merge
+}
+
 # true if the current shell is the parent shell
 pm_is_parent() {
 	if [ "$$" -eq "$PM_PARENT_PID" ]; then
