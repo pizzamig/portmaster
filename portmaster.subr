@@ -468,6 +468,20 @@ pm_backup () {
 	return $?
 }
 
+# it get the complete list of dependencies of a port
+# $1 a valid origin
+pm_get_origin_dep_list () {
+	local _dep_list _output
+	(
+		cd $pd/$1
+		_dep_list=$(make all-depends-list)
+		for d in $_dep_list ; do
+			_output="${_output}:${d#$pd/}"
+		done
+		echo $_output
+	)
+}
+
 #============ High level functions =============
 
 # --clean-distfiles ; no arguments needed
