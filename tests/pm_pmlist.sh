@@ -4,7 +4,6 @@
 # test cases
 test_pmlist_is_present()
 {
-	local rc
 	TESTLIST="asdf:blah:foo"
 	PMLIST_NAME=TESTLIST
 	if ! pmlist_is_present asdf ; then
@@ -23,7 +22,6 @@ test_pmlist_is_present()
 
 test_pmlist_is_present_2()
 {
-	local rc
 	TESTLIST="asdf:blah"
 	PMLIST_NAME=TESTLIST
 	if ! pmlist_is_present asdf ; then
@@ -39,7 +37,6 @@ test_pmlist_is_present_2()
 
 test_pmlist_is_present_3()
 {
-	local rc
 	TESTLIST="asdf"
 	PMLIST_NAME=TESTLIST
 	if ! pmlist_is_present asdf ; then
@@ -52,7 +49,6 @@ test_pmlist_is_present_3()
 
 test_pmlist_is_present_4()
 {
-	local rc
 	TESTLIST=
 	PMLIST_NAME=TESTLIST
 	if ! pmlist_is_present ; then
@@ -65,7 +61,6 @@ test_pmlist_is_present_4()
 
 test_pmlist_is_present_5()
 {
-	local rc
 	TESTLIST=":asdf:"
 	PMLIST_NAME=TESTLIST
 	if ! pmlist_is_present ; then
@@ -78,7 +73,6 @@ test_pmlist_is_present_5()
 
 test_pmlist_merge()
 {
-	local rc
 	TESTLIST="asdf:blah:foo"
 	PMLIST_NAME=TESTLIST
 	pmlist_merge "bar:blah"
@@ -87,12 +81,65 @@ test_pmlist_merge()
 
 test_pmlist_merge_2()
 {
-	local rc
 	TESTLIST="asdf"
 	PMLIST_NAME=TESTLIST
 	pmlist_merge "bar:blah"
 	assertEquals "asdf:bar:blah" "$TESTLIST"
 }
+
+test_pmlist_pop()
+{
+	local rv
+	TESTLIST="asdf:blah:foo"
+	PMLIST_NAME=TESTLIST
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "asdf" "$rv"
+	assertEquals "blah:foo" "$TESTLIST"
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "blah" "$rv"
+	assertEquals "foo" "$TESTLIST"
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "foo" "$rv"
+	assertEquals "" "$TESTLIST"
+	rv=$(pmlist_pop)
+	assertEquals "" "$rv"
+}
+
+test_pmlist_pop_2()
+{
+	local rv
+	TESTLIST=":asdf:blah:foo:"
+	PMLIST_NAME=TESTLIST
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "asdf" "$rv"
+	assertEquals "blah:foo:" "$TESTLIST"
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "blah" "$rv"
+	assertEquals "foo:" "$TESTLIST"
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "foo" "$rv"
+	assertEquals "" "$TESTLIST"
+	rv=$(pmlist_pop)
+	assertEquals "" "$rv"
+}
+
+test_pmlist_pop_3()
+{
+	local rv
+	TESTLIST=":"
+	PMLIST_NAME=TESTLIST
+	rv=$(pmlist_pop)
+	TESTLIST=$(pmlist_pop_list $rv)
+	assertEquals "" "$rv"
+	assertEquals ":" "$TESTLIST"
+}
+
 setUp()
 {
 	unset PMLIST_NAME

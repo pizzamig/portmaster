@@ -35,6 +35,28 @@ pmlist_merge() {
 	eval $PMLIST_NAME=\$$PMLIST_NAME$_merge
 }
 
+pmlist_pop() {
+	local _list _e
+	_list=$(eval echo \$$PMLIST_NAME)
+	# removing the heading and the trailing separator
+	_list="${_list%':'}"
+	_list="${_list#':'}"
+	[ -z "$_list" ] && return
+	_e=${_list%%':'*}
+	echo $_e
+}
+
+pmlist_pop_list() {
+	local _list _e
+	_e=$1
+	_list=$(eval echo \$$PMLIST_NAME)
+	[ -z "$_e" ] && echo $_list
+	_list="${_list#':'}"
+	_list="${_list#$_e}"
+	_list="${_list#':'}"
+	echo $_list
+}
+
 # true if the current shell is the parent shell
 pm_is_parent() {
 	if [ "$$" -eq "$PM_PARENT_PID" ]; then
