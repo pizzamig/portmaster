@@ -514,6 +514,28 @@ pm_build_origin() {
 	)
 }
 
+pm_check_for_updatables() {
+	local _pkg _update_list
+	_pkg_to_check_list=$1
+	_update_list=
+	PMLIST_NAME=_pkg_to_check_list
+	_pkg=$(pmlist_pop)
+	_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	while [ -n "$_pkg" ]; do
+		# if _pkg is an origin, add it and continue
+		if [ -d $pd/$_pkg -a -r $pd/$_pkg/Makefile ]; then
+			_update_list=${_update_list}:${_pkg}
+		else
+			# if _pkg has to be updated, add its origin and continue
+			if pm_check_for_updates $_pkg ; then
+				_update_list=${_update_list}:$(pm_get_moved_origin $_pkg)
+			fi
+		fi
+		_pkg=$(pmlist_pop)
+		_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	done
+}
+
 # it updates a list of origins
 pm_update () {
 	local _origin
