@@ -504,6 +504,29 @@ pm_get_origin_dep_list () {
 	)
 }
 
+# first easy implementation of the real ports builder
+# $1 : a valid origin
+pm_build_origin() {
+	[ ! -d $pd/$1 ] && return $PM_FALSE
+	(
+		cd $pd/$1
+		make reinstall clean
+	)
+}
+
+# it updates a list of origins
+pm_update () {
+	local _origin
+	PMLIST_NAME=PM_UPDATE_LIST
+	_origin=$(pmlist_pop)
+	PM_UPDATE_LIST=$(pmlist_pop_list $_origin)
+	while [ -n "$_origin" ]; do
+		pm_build_origin $_origin
+		_origin=$(pmlist_pop)
+		PM_UPDATE_LIST=$(pmlist_pop_list $_origin)
+	done
+}
+
 #============ High level functions =============
 
 # --clean-distfiles ; no arguments needed
@@ -730,6 +753,8 @@ pm_clean_stale () {
 	exit 0
 }
 
+# INCOMPLETE AND EXPERIMENTAL
+# PROBABLY TO BE COMPLETELY REWORKED
 # -a : update all
 pm_update_all () {
 	local origin
