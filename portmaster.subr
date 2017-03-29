@@ -262,6 +262,18 @@ pm_find_glob_pkgs () {
 	esac
 }
 
+# Validate an origin: the directory and its Makefile has to exist
+# $1 : the origin to validate
+pm_is_valid_origin () {
+	local _pkg
+	[ -z "$1" ] && return $PM_FALSE
+	_pkg="$1"
+	if [ -d $pd/$_pkg -a -r $pd/$_pkg/Makefile ]; then
+		return $PM_TRUE
+	fi
+	return $PM_FALSE
+}
+
 # get the origin from a pkg name [name-version]; return values
 # 0 - package found
 # 1 - package not found
@@ -523,7 +535,7 @@ pm_check_for_updatables() {
 	_pkg_to_check_list=$(pmlist_pop_list $_pkg)
 	while [ -n "$_pkg" ]; do
 		# if _pkg is an origin, add it and continue
-		if [ -d $pd/$_pkg -a -r $pd/$_pkg/Makefile ]; then
+		if pm_is_valid_origin $_pkg ; then
 			_update_list=${_update_list}:${_pkg}
 		else
 			# if _pkg has to be updated, add its origin and continue
