@@ -240,9 +240,8 @@ pm_init_global_vars () {
 			export PACKAGES
 		fi
 	fi
-
 	if [ -z "$LOCALBASE" ]; then
-		LOCALBASE=$(pm_make -f/usr/share/mk/bsd.port.mk -V LOCALBASE 2>/dev/null)
+		LOCALBASE=$(pm_wrap_make -f/usr/share/mk/bsd.port.mk -V LOCALBASE 2>/dev/null)
 		if [ -z "$LOCALBASE" ]; then
 			pm_print_arr "Unable to determine the value of LOCALBASE"
 			fail 'the value of LOCALBASE cannot be empty'
