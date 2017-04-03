@@ -312,7 +312,7 @@ pm_get_inst_pkgname () {
 	*) rc=2 ;;
 	esac
 	pkg query -e "%o = ${1}" '%n-%v'
-	return rc
+	return $rc
 }
 
 # look for moved ports origin
@@ -472,7 +472,7 @@ pm_check_for_updates () {
 	fi
 	state=$(pm_get_port_sanity_state $origin)
 	if [ -n "$state" ]; then
-		pm_print_err "This port is marked $state"
+		pm_print_arr "This port is marked $state"
 		return $PM_FALSE
 	fi
 	curVersion=$( pkg query "%v" $pkgname )
@@ -492,12 +492,13 @@ pm_check_for_updates () {
 pm_check_origin_for_updates () {
 	local _origin _pkg
 	_origin=$1
-	_pkg=pm_get_inst_pkgname $_origin
+	_pkg=$(pm_get_inst_pkgname $_origin)
 	case $? in
 	1) return $PM_TRUE ;; # if not installed, it has to be installed
-	2) pm_print_err "I don't know what sub-package is related to $_origin"
+	2) pm_print_arr "I don't know what sub-package is related to $_origin"
 	esac
-	return pm_check_for_updates $_pkg
+	pm_check_for_updates $_pkg
+	return $?
 }
 
 # it creates a backup pkg of the installed pkg
@@ -576,12 +577,12 @@ pm_check_for_updatables() {
 	while [ -n "$_pkg" ]; do
 		# if _pkg is an origin, add it and continue
 		if pm_is_valid_origin $_pkg ; then
-			if pm_check_origin_for_updates $_pkg ; then
+			if pm_check_origin_for_updates $_pkg > /dev/null ; then
 				_update_list=${_update_list}:${_pkg}
 			fi
 		else
 			# if _pkg has to be updated, add its origin and continue
-			if pm_check_for_updates $_pkg ; then
+			if pm_check_for_updates $_pkg > /dev/null ; then
 				_update_list=${_update_list}:$(pm_get_moved_origin $_pkg)
 			fi
 		fi
