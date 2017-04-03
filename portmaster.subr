@@ -533,7 +533,6 @@ pm_build_origin() {
 	)
 }
 
-
 pm_get_dependency_list() {
 	local _pkg _input_list _dependency_list
 	_input_list="$1"
@@ -576,6 +575,7 @@ pm_check_for_updatables() {
 		_pkg=$(pmlist_pop $_pkg_to_check_list)
 		_pkg_to_check_list=$(pmlist_pop_list $_pkg $_pkg_to_check_list)
 	done
+	echo $_update_list
 }
 
 # it updates a list of origins
@@ -588,6 +588,23 @@ pm_update () {
 		_origin=$(pmlist_pop $PM_UPDATE_LIST)
 		PM_UPDATE_LIST=$(pmlist_pop_list $_origin $PM_UPDATE_LIST)
 	done
+}
+
+# The general main function
+# $1 the user list
+pm_mainbuild() {
+	local _user_list _updatable_list _dep_list
+	_user_list=$1
+	[ -z $_user_list ] && return
+	_updatable_list=$(pm_check_for_updatables $_user_list)
+	[ -z $_updatable_list ] && return
+	_dep_list=$(pm_get_dependency_list $_updatable_list)
+	[ -z $_dep_list ] && return
+	_dep_list=$(pm_check_for_updatables $_dep_list)
+	[ -z $_dep_list ] && return
+	_updatable_list=$(pmlist_merge $_dep_list $_updatable_list)
+	[ -z $_updatable_list ] && return
+	pm_update $_updatable_list
 }
 
 #============ High level functions =============
