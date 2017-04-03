@@ -471,7 +471,7 @@ pm_check_for_updates () {
 	if [ $? -ne 0 ]; then
 		return $PM_FALSE
 	fi
-	state=$(pm_get_port_sanity_state)
+	state=$(pm_get_port_sanity_state $origin)
 	if [ -n "$state" ]; then
 		pm_print_err "This port is marked $state"
 		return $PM_FALSE
@@ -488,6 +488,17 @@ pm_check_for_updates () {
 		;;
 	esac
 	return $PM_TRUE
+}
+
+pm_check_origin_for_updates () {
+	local _origin _pkg
+	_origin=$1
+	_pkg=pm_get_inst_pkgname $_origin
+	case $? in
+	1) return $PM_TRUE ;; # if not installed, it has to be installed
+	2) pm_print_err "I don't know what sub-package is related to $_origin"
+	esac
+	return pm_check_for_updates $_pkg
 }
 
 # it creates a backup pkg of the installed pkg
@@ -566,7 +577,9 @@ pm_check_for_updatables() {
 	while [ -n "$_pkg" ]; do
 		# if _pkg is an origin, add it and continue
 		if pm_is_valid_origin $_pkg ; then
-			_update_list=${_update_list}:${_pkg}
+			if pm_check_origin_for_updates $_pkg ; then
+				_update_list=${_update_list}:${_pkg}
+			fi
 		else
 			# if _pkg has to be updated, add its origin and continue
 			if pm_check_for_updates $_pkg ; then
