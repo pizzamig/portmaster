@@ -31,7 +31,7 @@ pmlist_is_present() {
 pmlist_merge() {
 	local _merge _e
 	_merge=$1
-	[ -z "$2" ] && return
+	[ -z "$2" ] && echo $_merge && return
 	for _e in $(echo $2 | tr ':' ' ') ; do
 		if ! pmlist_is_present $_e $_merge ; then
 			_merge=${_merge}':'$_e
@@ -595,16 +595,18 @@ pm_update () {
 pm_mainbuild() {
 	local _user_list _updatable_list _dep_list
 	_user_list=$1
-	[ -z $_user_list ] && return
+	[ -z $_user_list ] && echo "user list empty" && return
 	_updatable_list=$(pm_check_for_updatables $_user_list)
-	[ -z $_updatable_list ] && return
+	[ -z $_updatable_list ] && echo "updatable 1 list empty" && return
+	echo "updatable 1 : $_updatable_list"
 	_dep_list=$(pm_get_dependency_list $_updatable_list)
-	[ -z $_dep_list ] && return
+	echo "dependency 1 : $_dep_list"
 	_dep_list=$(pm_check_for_updatables $_dep_list)
-	[ -z $_dep_list ] && return
+	echo "dependency 2 : $_dep_list"
 	_updatable_list=$(pmlist_merge $_dep_list $_updatable_list)
-	[ -z $_updatable_list ] && return
-	pm_update $_updatable_list
+	[ -z $_updatable_list ] && echo "updatable 2 list empty" && return
+	echo "updating all this shit $_updatable_list"
+	#pm_update $_updatable_list
 }
 
 #============ High level functions =============
