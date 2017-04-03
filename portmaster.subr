@@ -230,13 +230,15 @@ pm_init_global_vars () {
 	fi
 
 	# TODO: it should be performed if the PACKAGES variable is needed
-	if [ -z "$PACKAGES" ]; then
-		PACKAGES=$(pm_make -f/usr/share/mk/bsd.port.mk -V PACKAGES 2>/dev/null)
-		[ -z "$PACKAGES" ] && [ -d $pd/packages ] && PACKAGES=$pd/packages
-		# we should relax this check
-		[ ! -w $PACKAGES ] &&
-			fail 'PACKAGES cannot be empty and the directory must be writable'
-		export PACKAGES
+	if [ "$1" != "NO_PACKAGES" ] ; then
+		if [ -z "$PACKAGES" ]; then
+			PACKAGES=$(pm_make -f/usr/share/mk/bsd.port.mk -V PACKAGES 2>/dev/null)
+			[ -z "$PACKAGES" ] && [ -d $pd/packages ] && PACKAGES=$pd/packages
+			# we should relax this check
+			[ ! -w $PACKAGES ] &&
+				fail 'PACKAGES cannot be empty and the directory must be writable'
+			export PACKAGES
+		fi
 	fi
 
 	if [ -z "$LOCALBASE" ]; then
