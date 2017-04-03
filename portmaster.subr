@@ -534,12 +534,11 @@ pm_build_origin() {
 
 
 pm_get_dependency_list() {
-	local _pkg
+	local _pkg _input_list _dependency_list
 	_input_list="$1"
 	_dependency_list=""
-	PM_LIST_NAME=_input_list
-	_pkg=$(pmlist_pop)
-	_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	_pkg=$(pmlist_pop $_input_list)
+	_input_list=$(pmlist_pop_list $_pkg $_input_list)
 	while [ -n "$_pkg" ]; do
 		# if the pkg is a pkg name, get its origin name before
 		if pm_is_valid_origin $_pkg ; then
@@ -549,23 +548,20 @@ pm_get_dependency_list() {
 		fi
 		_temp_dep_list=$(pm_get_origin_dep_list $_origin)
 
-		PM_LIST_NAME=_dependency_list
-		pmlist_merge $_temp_dep_list
+		_dependency_list=$(pmlist_merge $_dependency_list $_temp_dep_list)
 
-		PM_LIST_NAME=_input_list
-		_pkg=$(pmlist_pop)
-		_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+		_pkg=$(pmlist_pop $_input_list)
+		_input_list=$(pmlist_pop_list $_pkg $_input_list)
 	done
 	echo $_dependency_list
 }
 
 pm_check_for_updatables() {
-	local _pkg _update_list
+	local _pkg _update_list _pkg_to_check_list
 	_pkg_to_check_list=$1
 	_update_list=
-	PMLIST_NAME=_pkg_to_check_list
-	_pkg=$(pmlist_pop)
-	_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	_pkg=$(pmlist_pop $_pkg_to_check_list)
+	_pkg_to_check_list=$(pmlist_pop_list $_pkg $_pkg_to_check_list)
 	while [ -n "$_pkg" ]; do
 		# if _pkg is an origin, add it and continue
 		if pm_is_valid_origin $_pkg ; then
@@ -576,21 +572,20 @@ pm_check_for_updatables() {
 				_update_list=${_update_list}:$(pm_get_moved_origin $_pkg)
 			fi
 		fi
-		_pkg=$(pmlist_pop)
-		_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+		_pkg=$(pmlist_pop $_pkg_to_check_list)
+		_pkg_to_check_list=$(pmlist_pop_list $_pkg $_pkg_to_check_list)
 	done
 }
 
 # it updates a list of origins
 pm_update () {
 	local _origin
-	PMLIST_NAME=PM_UPDATE_LIST
-	_origin=$(pmlist_pop)
-	PM_UPDATE_LIST=$(pmlist_pop_list $_origin)
+	_origin=$(pmlist_pop $PM_UPDATE_LIST)
+	PM_UPDATE_LIST=$(pmlist_pop_list $_origin $PM_UPDATE_LIST)
 	while [ -n "$_origin" ]; do
 		pm_build_origin $_origin
-		_origin=$(pmlist_pop)
-		PM_UPDATE_LIST=$(pmlist_pop_list $_origin)
+		_origin=$(pmlist_pop $PM_UPDATE_LIST)
+		PM_UPDATE_LIST=$(pmlist_pop_list $_origin $PM_UPDATE_LIST)
 	done
 }
 
