@@ -5,17 +5,16 @@
 test_pmlist_is_present()
 {
 	TESTLIST="asdf:blah:foo"
-	PMLIST_NAME=TESTLIST
-	if ! pmlist_is_present asdf ; then
+	if ! pmlist_is_present asdf $TESTLIST ; then
 		fail "First element not detected"
 	fi
-	if ! pmlist_is_present blah ; then
+	if ! pmlist_is_present blah $TESTLIST ; then
 		fail "Middle element not detected"
 	fi
-	if ! pmlist_is_present foo ; then
+	if ! pmlist_is_present foo $TESTLIST ; then
 		fail "Last element not detected"
 	fi
-	if pmlist_is_present foobar ; then
+	if pmlist_is_present foobar $TESTLIST ; then
 		fail "Random element detected"
 	fi
 }
@@ -23,14 +22,13 @@ test_pmlist_is_present()
 test_pmlist_is_present_2()
 {
 	TESTLIST="asdf:blah"
-	PMLIST_NAME=TESTLIST
-	if ! pmlist_is_present asdf ; then
+	if ! pmlist_is_present asdf $TESTLIST ; then
 		fail "First element not detected"
 	fi
-	if ! pmlist_is_present blah ; then
+	if ! pmlist_is_present blah $TESTLIST ; then
 		fail "Last element not detected"
 	fi
-	if pmlist_is_present foobar ; then
+	if pmlist_is_present foobar $TESTLIST ; then
 		fail "Random element detected"
 	fi
 }
@@ -38,11 +36,10 @@ test_pmlist_is_present_2()
 test_pmlist_is_present_3()
 {
 	TESTLIST="asdf"
-	PMLIST_NAME=TESTLIST
-	if ! pmlist_is_present asdf ; then
+	if ! pmlist_is_present asdf $TESTLIST ; then
 		fail "Single element not detected"
 	fi
-	if pmlist_is_present foobar ; then
+	if pmlist_is_present foobar $TESTLIST ; then
 		fail "Random element detected"
 	fi
 }
@@ -50,11 +47,10 @@ test_pmlist_is_present_3()
 test_pmlist_is_present_4()
 {
 	TESTLIST=
-	PMLIST_NAME=TESTLIST
-	if ! pmlist_is_present ; then
+	if ! pmlist_is_present $TESTLIST ; then
 		fail "Empty element not detected"
 	fi
-	if pmlist_is_present foobar ; then
+	if pmlist_is_present foobar $TESTLIST ; then
 		fail "Element detected in empty list"
 	fi
 }
@@ -62,11 +58,10 @@ test_pmlist_is_present_4()
 test_pmlist_is_present_5()
 {
 	TESTLIST=":asdf:"
-	PMLIST_NAME=TESTLIST
-	if ! pmlist_is_present ; then
+	if ! pmlist_is_present "" $TESTLIST ; then
 		fail "Empty element not detected"
 	fi
-	if ! pmlist_is_present asdf ; then
+	if ! pmlist_is_present asdf $TESTLIST ; then
 		fail "Element not detected between empty elements"
 	fi
 }
@@ -74,16 +69,14 @@ test_pmlist_is_present_5()
 test_pmlist_merge()
 {
 	TESTLIST="asdf:blah:foo"
-	PMLIST_NAME=TESTLIST
-	pmlist_merge "bar:blah"
+	TESTLIST="$(pmlist_merge "$TESTLIST" "bar:blah")"
 	assertEquals "asdf:blah:foo:bar" "$TESTLIST"
 }
 
 test_pmlist_merge_2()
 {
 	TESTLIST="asdf"
-	PMLIST_NAME=TESTLIST
-	pmlist_merge "bar:blah"
+	TESTLIST="$( pmlist_merge "$TESTLIST" "bar:blah" )"
 	assertEquals "asdf:bar:blah" "$TESTLIST"
 }
 
@@ -91,20 +84,19 @@ test_pmlist_pop()
 {
 	local rv
 	TESTLIST="asdf:blah:foo"
-	PMLIST_NAME=TESTLIST
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "asdf" "$rv"
 	assertEquals "blah:foo" "$TESTLIST"
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "blah" "$rv"
 	assertEquals "foo" "$TESTLIST"
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "foo" "$rv"
 	assertEquals "" "$TESTLIST"
-	rv=$(pmlist_pop)
+	rv=$(pmlist_pop $TESTLIST)
 	assertEquals "" "$rv"
 }
 
@@ -112,20 +104,19 @@ test_pmlist_pop_2()
 {
 	local rv
 	TESTLIST=":asdf:blah:foo:"
-	PMLIST_NAME=TESTLIST
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "asdf" "$rv"
 	assertEquals "blah:foo:" "$TESTLIST"
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "blah" "$rv"
 	assertEquals "foo:" "$TESTLIST"
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list $rv $TESTLIST)
 	assertEquals "foo" "$rv"
 	assertEquals "" "$TESTLIST"
-	rv=$(pmlist_pop)
+	rv=$(pmlist_pop $TESTLIST)
 	assertEquals "" "$rv"
 }
 
@@ -133,16 +124,10 @@ test_pmlist_pop_3()
 {
 	local rv
 	TESTLIST=":"
-	PMLIST_NAME=TESTLIST
-	rv=$(pmlist_pop)
-	TESTLIST=$(pmlist_pop_list $rv)
+	rv=$(pmlist_pop $TESTLIST)
+	TESTLIST=$(pmlist_pop_list "$rv" $TESTLIST)
 	assertEquals "" "$rv"
 	assertEquals ":" "$TESTLIST"
-}
-
-setUp()
-{
-	unset PMLIST_NAME
 }
 
 # loading shunit2

@@ -12,32 +12,38 @@ PM_FALSE=1
 PMLIST_FS=':'
 PMLIST_NAME=pmlist_list
 pmlist_list="$PMLIST_FS"
+# $1 the element to be found
+# $2 the list
 pmlist_is_present() {
 	local _list
 	[ -z "$1" ] && return $PM_TRUE
-	_list=$(eval echo \$$PMLIST_NAME)
-	[ -z "$_list" ] && return $PM_FALSE
+	[ -z "$2" ] && return $PM_FALSE
+	_list="$2"
 	case $_list in
 		*:$1:*|$1:*|*:${1}|$1) return $PM_TRUE ;;
 	esac
 	return $PM_FALSE
 }
 
+# the merge appends new elements of the second list at the end of the first list
+# $1 the first list
+# $2 the second list
 pmlist_merge() {
 	local _merge _e
-	[ -z "$1" ] && return
-	_merge=
-	for _e in $(echo $1 | tr ':' ' ') ; do
-		if ! pmlist_is_present $_e ; then
+	_merge=$1
+	[ -z "$2" ] && return
+	for _e in $(echo $2 | tr ':' ' ') ; do
+		if ! pmlist_is_present $_e $_merge ; then
 			_merge=${_merge}':'$_e
 		fi
 	done
-	eval $PMLIST_NAME=\$$PMLIST_NAME$_merge
+	echo $_merge
 }
 
+# $1 the list
 pmlist_pop() {
 	local _list _e
-	_list=$(eval echo \$$PMLIST_NAME)
+	_list=$1
 	# removing the heading and the trailing separator
 	_list="${_list%':'}"
 	_list="${_list#':'}"
@@ -48,8 +54,8 @@ pmlist_pop() {
 
 pmlist_pop_list() {
 	local _list _e
+	_list=$2
 	_e=$1
-	_list=$(eval echo \$$PMLIST_NAME)
 	[ -z "$_e" ] && echo $_list
 	_list="${_list#':'}"
 	_list="${_list#$_e}"
