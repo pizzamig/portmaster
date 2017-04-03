@@ -526,6 +526,33 @@ pm_build_origin() {
 	)
 }
 
+
+pm_get_dependency_list() {
+	local _pkg
+	_input_list="$1"
+	_dependency_list=""
+	PM_LIST_NAME=_input_list
+	_pkg=$(pmlist_pop)
+	_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	while [ -n "$_pkg" ]; do
+		# if the pkg is a pkg name, get its origin name before
+		if pm_is_valid_origin $_pkg ; then
+			_origin=$_pkg
+		else
+			_origin=$(pm_get_moved_origin $_pkg)
+		fi
+		_temp_dep_list=$(pm_get_origin_dep_list $_origin)
+
+		PM_LIST_NAME=_dependency_list
+		pmlist_merge $_temp_dep_list
+
+		PM_LIST_NAME=_input_list
+		_pkg=$(pmlist_pop)
+		_pkg_to_check_list=$(pmlist_pop_list $_pkg)
+	done
+	echo $_dependency_list
+}
+
 pm_check_for_updatables() {
 	local _pkg _update_list
 	_pkg_to_check_list=$1
