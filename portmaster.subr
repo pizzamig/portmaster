@@ -524,12 +524,17 @@ pm_backup () {
 # it get the complete list of dependencies of a port
 # $1 a valid origin
 pm_get_origin_dep_list () {
-	local _dep_list _output
+	local _dep_list _output _build_dep _run_dep
 	(
 		cd $pd/$1
 		_dep_list=$(make all-depends-list)
+		_build_dep=$(make build-depends-list | tr '\n' ':')
+		_run_dep=$(make run-depends-list | tr '\n' ':')
+		_run_dep=$(pmlist_merge $_build_dep $_run_dep)
 		for d in $_dep_list ; do
-			_output="${_output}:${d#$pd/}"
+			if pmlist_is_present $d $_run_dep ; then
+				_output="${_output}:${d#$pd/}"
+			fi
 		done
 		echo $_output
 	)
