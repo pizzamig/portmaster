@@ -84,7 +84,7 @@ pmlog () {
 	_tag=${PMLOG_TAG}
 	case $1 in
 	PMLOG_DEBUG)
-		[ $PM_DEBUG -ne $PM_TRUE ] && return
+		[ "$PM_DEBUG" = "$PM_TRUE" ] && return
 		level=debug
 		_tag="${PMLOG_TAG}(debug)"
 		shift ;;
@@ -598,7 +598,7 @@ pm_get_dependency_list() {
 	_pkg=$(pmlist_pop $_input_list)
 	_input_list=$(pmlist_pop_list $_pkg $_input_list)
 	while [ -n "$_pkg" ]; do
-		PMLOG_DEBUG pmlog "DEPLIST: Determining the dependency list of $_pkg"
+		pmlog PMLOG_DEBUG "DEPLIST: Determining the dependency list of $_pkg"
 		# if the pkg is a pkg name, get its origin name before
 		if pm_is_valid_origin $_pkg ; then
 			_origin=$_pkg
@@ -612,7 +612,7 @@ pm_get_dependency_list() {
 
 		_pkg=$(pmlist_pop $_input_list)
 		_input_list=$(pmlist_pop_list $_pkg $_input_list)
-		PMLOG_DEBUG pmlog "DEPLIST: Determined the final dependency list"
+		pmlog PMLOG_DEBUG "DEPLIST: Determined the final dependency list"
 	done
 	echo $_dependency_list
 }
