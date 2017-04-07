@@ -63,6 +63,49 @@ pmlist_pop_list() {
 	echo $_list
 }
 
+pmlist_intersect() {
+	local _forlist _retlist
+	_retlist=""
+	_forlist="$(echo $1 | tr ':' ' ')"
+	for e in $_forlist ; do
+		if pmlist_is_present $e $2 ; then
+			_retlist=$_retlist:$e
+		fi
+	done
+	echo $_retlist
+}
+
+PMLOG_LEVEL="info"
+PMLOG_FACILITY="local5"
+PMLOG_TAG="portmaster"
+pmlog () {
+	local level _tag _opt
+	level=${PMLOG_LEVEL}
+	_tag=${PMLOG_TAG}
+	case $1 in
+	PMLOG_DEBUG)
+		[ $PM_DEBUG -ne $PM_TRUE ] && return
+		level=debug
+		_tag="${PMLOG_TAG}(debug)"
+		shift ;;
+	PMLOG_WARN)
+		level=warn
+		_tag="${PMLOG_TAG}(warn)"
+		_opt="-s"
+		shift ;;
+	PMLOG_ERR)
+		level=err
+		_tag="${PMLOG_TAG}(ERROR)"
+		_opt="-s"
+		shift ;;
+	PMLOG_INFO)
+		level=info
+		shift ;;
+	esac
+	logger $_opt -p ${PMLOG_FACILITY}.${level} -t ${_tag} $@
+}
+
+
 # true if the current shell is the parent shell
 pm_is_parent() {
 	if [ "$$" -eq "$PM_PARENT_PID" ]; then
@@ -527,22 +570,20 @@ pm_get_origin_dep_list () {
 	local _dep_list _output _build_dep _run_dep
 	(
 		cd $pd/$1
-		_dep_list=$(make all-depends-list)
-		_build_dep=$(make build-depends-list | tr '\n' ':')
-		_run_dep=$(make run-depends-list | tr '\n' ':')
-		_run_dep=$(pmlist_merge $_build_dep $_run_dep)
-		for d in $_dep_list ; do
-			if pmlist_is_present $d $_run_dep ; then
-				_output="${_output}:${d#$pd/}"
-			fi
-		done
+		pmlog PMLOG_DEBUG "O_DEPLIST: Determining the build dependency list"
+		_build_dep=$(make build-depends-list | tr '\n' ':' | sed "s%$pd/%%g")
+		pmlog PMLOG_DEBUG "O_DEPLIST: Determining the run dependency list"
+		_run_dep=$(make run-depends-list | tr '\n' ':' | sed "s%$pd/%%g")
+		pmlog PMLOG_DEBUG "O_DEPLIST: Merging the lists"
+		_output=$(pmlist_merge $_build_dep $_run_dep)
+		pmlog PMLOG_DEBUG "O_DEPLIST: Returning the lists"
 		echo $_output
 	)
 }
 
 # first easy implementation of the real ports builder
 # $1 : a valid origin
-pm_build_origin() {
+pm_reinstall_origin() {
 	[ ! -d $pd/$1 ] && return $PM_FALSE
 	(
 		cd $pd/$1
@@ -557,6 +598,7 @@ pm_get_dependency_list() {
 	_pkg=$(pmlist_pop $_input_list)
 	_input_list=$(pmlist_pop_list $_pkg $_input_list)
 	while [ -n "$_pkg" ]; do
+		PMLOG_DEBUG pmlog "DEPLIST: Determining the dependency list of $_pkg"
 		# if the pkg is a pkg name, get its origin name before
 		if pm_is_valid_origin $_pkg ; then
 			_origin=$_pkg
@@ -564,11 +606,13 @@ pm_get_dependency_list() {
 			_origin=$(pm_get_moved_origin $_pkg)
 		fi
 		_temp_dep_list=$(pm_get_origin_dep_list $_origin)
+		pmlog PMLOG_DEBUG "DEPLIST: Determined the dependency list"
 
 		_dependency_list=$(pmlist_merge $_dependency_list $_temp_dep_list)
 
 		_pkg=$(pmlist_pop $_input_list)
 		_input_list=$(pmlist_pop_list $_pkg $_input_list)
+		PMLOG_DEBUG pmlog "DEPLIST: Determined the final dependency list"
 	done
 	echo $_dependency_list
 }
@@ -580,8 +624,10 @@ pm_check_for_updatables() {
 	_pkg=$(pmlist_pop $_pkg_to_check_list)
 	_pkg_to_check_list=$(pmlist_pop_list $_pkg $_pkg_to_check_list)
 	while [ -n "$_pkg" ]; do
+#		pmlog "CHK_UPD: $_pkg"
 		# if _pkg is an origin, add it and continue
 		if pm_is_valid_origin $_pkg ; then
+#			pmlog "CHK_UPD: $_pkg is a valid origin"
 			if pm_check_origin_for_updates $_pkg > /dev/null ; then
 				_update_list=${_update_list}:${_pkg}
 			fi
@@ -597,15 +643,36 @@ pm_check_for_updatables() {
 	echo $_update_list
 }
 
+# $1 the origin
+# $2 the updatable list
+# $3 the updated list
+pm_build () {
+	local _pkg _uplist _done
+	local _deps _upd
+	_pkg=$1
+	_uplist=$2
+	_done=$3
+	_deps="$(pm_get_dependency_list $_pkg)"
+	_upd="$(pmlist_intersect $_deps $_uplist)"
+	for d in $_upd ; do
+		_done=$(pm_build $d $_uplist $_done)
+	done
+	pm_reinstall_origin $_pkg
+	_done=$_done:$_pkg
+}
+
 # it updates a list of origins
+# $1 the list of updatable origins
 pm_update () {
-	local _origin
-	_origin=$(pmlist_pop $PM_UPDATE_LIST)
-	PM_UPDATE_LIST=$(pmlist_pop_list $_origin $PM_UPDATE_LIST)
+	local _origin _updatable _built
+	_updatable=$1
+	_origin=$(pmlist_pop $_updatable)
+	_updatable=$(pmlist_pop_list $_origin $_updatable)
+	_built=":"
 	while [ -n "$_origin" ]; do
-		pm_build_origin $_origin
-		_origin=$(pmlist_pop $PM_UPDATE_LIST)
-		PM_UPDATE_LIST=$(pmlist_pop_list $_origin $PM_UPDATE_LIST)
+		_built=$(pm_build $_origin $_updatable $_built)
+		_origin=$(pmlist_pop $_updatable)
+		_updatable=$(pmlist_pop_list $_origin $_updatable)
 	done
 }
 
@@ -615,13 +682,18 @@ pm_mainbuild() {
 	local _user_list _updatable_list _dep_list
 	_user_list=$1
 	[ -z $_user_list ] && echo "user list empty" && return
+	date
 	_updatable_list=$(pm_check_for_updatables $_user_list)
 	[ -z $_updatable_list ] && echo "updatable 1 list empty" && return
 	echo "updatable 1 : $_updatable_list"
+	pmlog "Determined the updatable list"
+	echo updatable 1 && date
 	_dep_list=$(pm_get_dependency_list $_updatable_list)
 	echo "dependency 1 : $_dep_list"
+	pmlog "Determined the dependency list"
 	_dep_list=$(pm_check_for_updatables $_dep_list)
 	echo "dependency 2 : $_dep_list"
+	pmlog "Pruned the dependency list"
 	_updatable_list=$(pmlist_merge $_dep_list $_updatable_list)
 	[ -z $_updatable_list ] && echo "updatable 2 list empty" && return
 	echo "updating all this shit $_updatable_list"
