@@ -506,7 +506,7 @@ pm_check_for_exclude () {
 # return values:
 # 0 - an upgrade (or downgraded) is available
 # 1 - no new version available
-pm_check_for_updates () {
+pm_check_pkg_for_updates () {
 	local pkgname origin curVersion newVersion state
 	pkgname=$1
 	origin=$(pm_get_moved_origin $1)
@@ -540,7 +540,7 @@ pm_check_origin_for_updates () {
 	1) return $PM_TRUE ;; # if not installed, it has to be installed
 	2) pm_print_arr "I don't know what sub-package is related to $_origin"
 	esac
-	pm_check_for_updates $_pkg
+	pm_check_pkg_for_updates $_pkg
 	return $?
 }
 
@@ -617,6 +617,7 @@ pm_get_dependency_list() {
 	echo $_dependency_list
 }
 
+# For every origin or package, it checks if the updateability
 pm_check_for_updatables() {
 	local _pkg _update_list _pkg_to_check_list
 	_pkg_to_check_list=$1
@@ -624,16 +625,13 @@ pm_check_for_updatables() {
 	_pkg=$(pmlist_pop $_pkg_to_check_list)
 	_pkg_to_check_list=$(pmlist_pop_list $_pkg $_pkg_to_check_list)
 	while [ -n "$_pkg" ]; do
-#		pmlog "CHK_UPD: $_pkg"
-		# if _pkg is an origin, add it and continue
 		if pm_is_valid_origin $_pkg ; then
-#			pmlog "CHK_UPD: $_pkg is a valid origin"
 			if pm_check_origin_for_updates $_pkg > /dev/null ; then
 				_update_list=${_update_list}:${_pkg}
 			fi
 		else
 			# if _pkg has to be updated, add its origin and continue
-			if pm_check_for_updates $_pkg > /dev/null ; then
+			if pm_check_pkg_for_updates $_pkg > /dev/null ; then
 				_update_list=${_update_list}:$(pm_get_moved_origin $_pkg)
 			fi
 		fi
@@ -787,7 +785,7 @@ pm_list () {
 	for p in $roots; do
 		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
-			newVersion=$(pm_check_for_updates $p)
+			newVersion=$(pm_check_pkg_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				pm_print DIND "New version available: $newVersion"
 			fi
@@ -798,7 +796,7 @@ pm_list () {
 	for p in $trunks; do
 		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
-			newVersion=$(pm_check_for_updates $p)
+			newVersion=$(pm_check_pkg_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				pm_print DIND "New version available: $newVersion"
 			fi
@@ -809,7 +807,7 @@ pm_list () {
 	for p in $branches; do
 		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
-			newVersion=$(pm_check_for_updates $p)
+			newVersion=$(pm_check_pkg_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				pm_print DIND "New version available: $newVersion"
 			fi
@@ -820,7 +818,7 @@ pm_list () {
 	for p in $leaves; do
 		pm_print_arr "$p"
 		if [ -n "$PM_LIST_PLUS" ]; then
-			newVersion=$(pm_check_for_updates $p)
+			newVersion=$(pm_check_pkg_for_updates $p)
 			if [ $? -eq $PM_TRUE ]; then
 				pm_print DIND "New version available: $newVersion"
 			fi
