@@ -469,14 +469,12 @@ pm_get_port_sanity_state () {
 	_cwd=$(pwd)
 	_origin=$1
 	[ -n "$_origin" ] && cd $pd/$_origin
-	if egrep -ql '^(FORBIDDEN|BROKEN|IGNORE)' Makefile; then
-		for s in FORBIDDEN BROKEN IGNORE ; do
-			_state=$(pm_wrap_make -V $s)
-			if [ -n "$_state" ]; then
-				echo "$s"
-				return
-			fi
-		done
+	_state=$( egrep '^(FORBIDDEN|BROKEN|IGNORE)' Makefile | head -n 1 | sed 's/=.*$//' )
+	if [ -n "$_state" ]; then
+		if [ -n "$(pm_wrap_make -V $_state)" ]; then
+			echo "$_state"
+			return
+		fi
 	fi
 	[ -n "$_origin" ] && cd $_cwd
 }
