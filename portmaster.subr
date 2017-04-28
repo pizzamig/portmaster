@@ -516,6 +516,10 @@ pm_check_pkg_for_updates () {
 		pm_print_arr "This port is marked $state"
 		return $PM_FALSE
 	fi
+	if [ "$( pkg query %o $pkgname )" != $origin ]; then
+		# the port is moved, update is forced
+		return $PM_TRUE
+	fi
 	curVersion=$( pkg query "%v" $pkgname )
 	newVersion=$( make -C $pd/$origin -V PKGVERSION)
 	case $(pkg version -t $curVersion $newVersion) in
