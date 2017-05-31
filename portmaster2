@@ -13,4 +13,5 @@ fi
 
 pm_init_global_vars NO_PACKAGES
 
-PM_UPDATE_LIST=shells/bash
+all_pkgs="$(pkg query %n | tr '\n' ':')"
+pm_mainbuild "$all_pkgs"
