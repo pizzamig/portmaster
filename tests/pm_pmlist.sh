@@ -80,6 +80,19 @@ test_pmlist_merge_2()
 	assertEquals "asdf:bar:blah" "$TESTLIST"
 }
 
+test_pmlist_merge_3()
+{
+	TESTLIST="asdf"
+	TESTLIST="$( pmlist_merge "$TESTLIST" "" )"
+	assertEquals "asdf" "$TESTLIST"
+	TESTLIST="$( pmlist_merge "$TESTLIST" ":" )"
+	assertEquals "asdf" "$TESTLIST"
+	TESTLIST="$( pmlist_merge ":" ":" )"
+	assertEquals ":" "$TESTLIST"
+	TESTLIST="$( pmlist_merge "" ":" )"
+	assertEquals "" "$TESTLIST"
+}
+
 test_pmlist_pop()
 {
 	local rv
@@ -128,6 +141,26 @@ test_pmlist_pop_3()
 	TESTLIST=$(pmlist_pop_list "$rv" $TESTLIST)
 	assertEquals "" "$rv"
 	assertEquals ":" "$TESTLIST"
+}
+
+test_pmlist_intersect()
+{
+	TESTLIST1=":asdf:foo:bar:blah"
+	TESTLIST2=":"
+	TESTLIST=$(pmlist_intersect $TESTLIST1 $TESTLIST2)
+	assertEquals "" "$TESTLIST"
+	TESTLIST1=":"
+	TESTLIST2=":"
+	TESTLIST=$(pmlist_intersect $TESTLIST1 $TESTLIST2)
+	assertEquals "" "$TESTLIST"
+	TESTLIST1=":asdf:foo:bar:blah"
+	TESTLIST2=":blah:bar:foo:asdf:"
+	TESTLIST=$(pmlist_intersect $TESTLIST1 $TESTLIST2)
+	assertEquals "$TESTLIST1" "$TESTLIST"
+	TESTLIST1=":asdf:foo:bar:blah"
+	TESTLIST2="asdf"
+	TESTLIST=$(pmlist_intersect $TESTLIST1 $TESTLIST2)
+	assertEquals ":asdf" "$TESTLIST"
 }
 
 # loading shunit2
