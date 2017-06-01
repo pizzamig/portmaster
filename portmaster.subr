@@ -25,7 +25,7 @@ pmlist_is_present() {
 	return $PM_FALSE
 }
 
-# the merge appends new elements of the second list at the end of the first list
+# the merge function appends new elements of the second list at the end of the first list
 # $1 the first list
 # $2 the second list
 pmlist_merge() {
@@ -40,6 +40,7 @@ pmlist_merge() {
 	echo $_merge
 }
 
+# it gets the first element of the list
 # $1 the list
 pmlist_pop() {
 	local _list _e
@@ -52,6 +53,8 @@ pmlist_pop() {
 	echo $_e
 }
 
+# it the the list without the first element
+# $1 the list
 pmlist_pop_list() {
 	local _list _e
 	_list=$2
@@ -63,6 +66,10 @@ pmlist_pop_list() {
 	echo $_list
 }
 
+# it performs the intersection between two list
+# in other words, it returns the list of all common elements
+# $1 the first list
+# $2 the second list
 pmlist_intersect() {
 	local _forlist _retlist
 	_retlist=""
@@ -75,6 +82,14 @@ pmlist_intersect() {
 	echo $_retlist
 }
 
+# log utility function via logger (syslog)
+# syslog facility and tag are configured globally
+# log level supported are:
+# * PMLOG_DEBUG (performed if PM_DEBUG is true)
+# * PMLOG_INFO
+# * PMLOG_WARN (messages are printed on the console as well)
+# * PMLOG_ERR (messages are printed on the console as well)
+# $1 the log level; if not specified, PMLOG_INFO is used as default
 PMLOG_LEVEL="info"
 PMLOG_FACILITY="local5"
 PMLOG_TAG="portmaster"
@@ -104,7 +119,6 @@ pmlog () {
 	esac
 	logger $_opt -p ${PMLOG_FACILITY}.${level} -t ${_tag} $@
 }
-
 
 # true if the current shell is the parent shell
 pm_is_parent() {
